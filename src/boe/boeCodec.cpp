@@ -1719,11 +1719,11 @@ boeCodec::decode (cdr& d, const void* buf, size_t len, size_t& used)
     }
 }
 
-/*codecState boeCodec::encode (const cdr& d, void* buf, size_t len, size_t& used)
+codecState boeCodec::encode (const cdr& d, void* buf, size_t len, size_t& used)
 {
     clearLastError ();
     used = 0;
-    BoeHeaderPacket* hdr = (BoeHeaderPacket*) buf;
+   /* BoeHeaderPacket* hdr = (BoeHeaderPacket*) buf;
 
     if (len < sizeof * hdr)
         return GW_CODEC_SHORT;
@@ -1755,8 +1755,8 @@ boeCodec::decode (cdr& d, const void* buf, size_t len, size_t& used)
     if (state != GW_CODEC_SUCCESS)
         return state;
 
-    hdr->mMessageLength = used - (sizeof (*hdr) - 1);
+    hdr->mMessageLength = used - (sizeof (*hdr) - 1); */
     return GW_CODEC_SUCCESS;
-}*/
+}
 
 } // namespace neueda
