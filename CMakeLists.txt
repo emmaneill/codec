@@ -112,7 +112,7 @@ install(
   )
 
 set(${PROJECT_NAME}_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include)
-set(${PROJECT_NAME}_LIBRARIES codec lsecodec oslocodec turquoisecodec borsacodec swxcodec xetracodec fixcodec fields)
+set(${PROJECT_NAME}_LIBRARIES codec lsecodec oslocodec turquoisecodec borsacodec swxcodec xetracodec boecodec fixcodec fields)
 configure_file(
   ${PROJECT_SOURCE_DIR}/${PROJECT_NAME}.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config-install.cmake

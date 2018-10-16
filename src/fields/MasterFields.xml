@@ -2124,4 +2124,54 @@
   <field name="VarText" number="3965" venue="Xetra"/>
   <field name="VarTextLen" number="3966" venue="Xetra"/>
   <field name="VolumeDiscoveryPrice" number="3967" venue="Xetra"/>
+  <field name="MatchingUnit" number="4200" venue="Boe"/>
+  <field name="LoginResponseStatus" number="4201" venue="Boe"/>
+  <field name="LoginResponseText" number="4202" venue="Boe"/>
+  <field name="NoUnspecifiedUnitReplay" number="4203" venue="Boe"/>
+  <field name="LastReceivedSequenceNumber" number="4204" venue="Boe"/>
+  <field name="NumberOfUnits" number="4205" venue="Boe"/>
+  <field name= "UnitNumber" number="4206" venue="Boe"/>
+  <field name= "UnitSequence" number="4207" venue="Boe"/>
+  <field name= "NumberOfParamGroups" number="4208" venue="Boe"/>
+  <field name= "ParameterGroupLength" number="4209" venue="Boe"/>
+  <field name= "ParameterGroupType" number="4210" venue="Boe"/>
+  <field name= "UnitGroupSection" number="4211" venue="Boe"/>
+  <field name= "NoUnspecifiedReplay" number="4212" venue="Boe"/>
+  <field name= "UnitSequenceParamGroupSection" number="4213" venue="Boe"/>
+  <field name= "NumberOfBitfields" number="4214" venue="Boe"/>
+  <field name= "BitfieldSection" number="4215" venue="Boe"/>
+  <field name= "Bitfield" number="4216" venue="Boe"/>
+  <field name= "BitfieldParamGroupSection" number="4217" venue="Boe"/>
+  <field name= "LogoutReasonText" number="4218" venue="Boe"/>
+  <field name= "OrderRejectReason" number="4219" venue="Boe"/>
+  <field name= "OrderRejectText" number="4220" venue="Boe"/>
+  <field name= "ModifyRejectReason" number="4221" venue="Boe"/>
+  <field name= "ModifyRejectText" number="4222" venue="Boe"/>
+  <field name= "CancelReason" number="4223" venue="Boe"/>
+  <field name= "CancelRejectText" number="4224" venue="Boe"/>
+  <field name= "CorrectedPrice" number="4225" venue="Boe"/>
+  <field name= "BaseLiquidityIndicator" number="4226" venue="Boe"/>
+  <field name= "PegDifference"  number = "4227" venue="Boe"/>
+  <field name= "DisplayIndicator" number = "4228" venue="Boe"/>
+  <field name= "PreventParticipantMatch" number = "4229" venue="Boe"/>
+  <field name= "Ccp" number = "42310" venue="Boe"/>
+  <field name= "FeeCode" number = "4231" venue="Boe"/>
+  <field name= "RoutingInst" number = "4232" venue="Boe"/>
+  <field name= "LiquidityProvision" number = "4233" venue="Boe"/>
+  <field name= "WaiverType" number = "4234" venue="Boe"/>
+  <field name= "ClientQualifiedRole" number = "4235" venue="Boe"/>
+  <field name= "InvestorID" number = "4236" venue="Boe"/>
+  <field name= "ExecutorID" number = "4237" venue="Boe"/>
+  <field name= "OrderOrigination" number = "4238" venue="Boe"/>
+  <field name= "AlgorithmicIndicator" number = "4239" venue="Boe"/>
+  <field name= "InvestorQualifiedRole" number = "4240" venue="Boe"/>
+  <field name= "ExecutorQualifiedRole" number = "4241" venue="Boe"/>
+  <field name= "SubLiquidityIndicator" number = "4242" venue="Boe"/>
+  <field name= "LastPrice" number="4243" venue="Boe" />
+  <field name= "DisplayPrice" number="4244" venue="Boe"/>
+  <field name "WorkingPrice" number ="4245" venue="Boe"/>
+  <field name "IDSource" number ="4246" venue="Boe"/>
+
+    FieldMapCreated = true;
+
 </fields>

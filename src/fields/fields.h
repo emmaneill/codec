@@ -2140,7 +2140,53 @@ using namespace std;
 #define VarText 3965
 #define VarTextLen 3966
 #define VolumeDiscoveryPrice 3967
-
+#define MatchingUnit 4200
+#define LoginResponseStatus 4201
+#define LoginResponseText 4202
+#define NoUnspecifiedUnitReplay 4203
+#define LastReceivedSequenceNumber 4204
+#define NumberOfUnits 4205
+#define UnitNumber 4206
+#define UnitSequence 4207
+#define NumberOfParamGroups 4208
+#define ParameterGroupLength 4209
+#define ParameterGroupType 4210
+#define UnitGroupSection 4211
+#define NoUnspecifiedReplay 4212
+#define UnitSequenceParamGroupSection 4213
+#define NumberOfBitfields 4214
+#define BitfieldSection 4215
+#define Bitfield 4216
+#define BitfieldParamGroupSection 4217
+#define LogoutReasonText 4218
+#define OrderRejectReason 4219
+#define OrderRejectText 4220
+#define ModifyRejectReason 4221
+#define ModifyRejectText 4222
+#define CancelReason 4223
+#define CancelRejectText 4224
+#define CorrectedPrice 4225
+#define BaseLiquidityIndicator 4226
+#define PegDifference 4227
+#define DisplayIndicator 4228
+#define PreventParticipantMatch 4229
+#define Ccp 4230
+#define FeeCode 4231
+#define RoutingInst 4232
+#define LiquidityProvision 4233
+#define WaiverType 4234
+#define ClientQualifiedRole 4235
+#define InvestorID 4236
+#define ExecutorID 4237
+#define OrderOrigination 4238
+#define AlgorithmicIndicator 4239
+#define InvestorQualifiedRole 4240
+#define ExecutorQualifiedRole 4241
+#define SubLiquidityIndicator 4242
+#define LastPrice 4243
+#define DisplayPrice 4244
+#define WorkingPrice 4245
+#define IDSource 4246
 namespace neueda
 {
 
@@ -2148,7 +2194,9 @@ class FieldUtils
 {
     public:
         static map<int, string> createMap ();
+        static int getLastField();
         static string getFieldName (int f);
+        static void addFieldName (const int& f, const string& fieldName);
 
         static map<int, string> mFieldNames;
 };

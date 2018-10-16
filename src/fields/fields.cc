@@ -2140,6 +2140,53 @@ FieldUtils::createMap ()
     m[3965] = "VarText";
     m[3966] = "VarTextLen";
     m[3967] = "VolumeDiscoveryPrice";
+    m[4200] = "MatchingUnit";
+    m[4201] = "LoginResponseStatus";
+    m[4202] = "LoginResponseText";
+    m[4203] = "NoUnspecifiedUnitReplay";
+    m[4204] = "LastReceivedSequenceNumber";
+    m[4205] = "NumberOfUnits";
+    m[4206] = "UnitNumber";
+    m[4207] = "UnitSequence";
+    m[4208] = "NumberOfParamGroups";
+    m[4209] = "ParameterGroupLength";
+    m[4210] = "ParameterGroupType";
+    m[4211] = "UnitGroupSection";
+    m[4212] = "NoUnspecifiedReplay";
+    m[4213] = "UnitSequenceParamGroupSection";
+    m[4214] = "NumberOfBitfields";
+    m[4215] = "BitfieldSection";
+    m[4216] = "Bitfield";
+    m[4217] = "BitfieldParamGroupSection";
+    m[4218] = "LogoutReasonText";
+    m[4219] = "OrderRejectReason";
+    m[4220] = "OrderRejectText";
+    m[4221] = "ModifyRejectReason";
+    m[4222] = "ModifyRejectText";
+    m[4223] = "CancelReason";
+    m[4224] = "CancelRejectText";
+    m[4225] = "CorrectedPrice";
+    m[4226] = "BaseLiquidityIndicator";
+    m[4227] = "PegDifference";
+    m[4228] = "DisplayIndicator";
+    m[4229] = "PreventParticipantMatch";
+    m[4230] = "Ccp";
+    m[4231] = "FeeCode";
+    m[4232] = "RoutingInst";
+    m[4233] = "LiquidityProvision";
+    m[4234] = "WaiverType";
+    m[4235] = "ClientQualifiedRole";
+    m[4236] = "InvestorID";
+    m[4237] = "ExecutorID";
+    m[4238] = "OrderOrigination";
+    m[4239] = "AlgorithmicIndicator";
+    m[4240] = "InvestorQualifiedRole";
+    m[4241] = "ExecutorQualifiedRole";
+    m[4242] = "SubLiquidityIndicator";
+    m[4243] = "LastPrice";
+    m[4244] = "DisplayPrice";
+    m[4245] = "WorkingPrice";
+    m[4246] = "IDSource";
 
     FieldMapCreated = true;
     return m;
@@ -2160,6 +2207,20 @@ FieldUtils::getFieldName (int f)
     else
         return itr->second;
 }   
+
+void
+FieldUtils::addFieldName (const int& f, const string& fieldName)
+{
+    mFieldNames.insert(std::pair<int,string> ( f, fieldName));
+    return;
+}
+
+int
+FieldUtils::getLastField ()
+{
+    int fieldNum = mFieldNames.rbegin()->first;
+    return fieldNum;
+}
 
 map<int, string> FieldUtils::mFieldNames = FieldUtils::createMap ();
 
