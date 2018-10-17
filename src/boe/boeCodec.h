@@ -9,6 +9,9 @@
 #include "codecHelpers.h"
 #include "orderMsgBits.h"
 #include "newOrderBits.h"
+#include "cancelOrderBits.h"
+#include "modifyOrderBits.h"
+#include "tradeCaptureBits.h"
 #include "packets/BoeHeaderPacket.h"
 #include "packets/BoePackets.h"
 #include "fields.h"
@@ -34,6 +37,9 @@
 #define MIN_MSG_SIZE 10
 #define ORDER_MSG_BITFIELDS_SIZE 15
 #define NEW_ORDER_BITFIELDS_SIZE 8
+#define CANCEL_ORDER_BITFIELDS_SIZE 2
+#define MODIFY_ORDER_BITFIELDS_SIZE 2
+#define TRADE_CAPTURE_BITFIELDS_SIZE 5
 
 namespace neueda
 {
@@ -115,6 +121,10 @@ class boeCodec: public codec
         OrderMsgBits* mOrderAckBits;
         OrderMsgBits* mOrderCancelledBits;
         NewOrderBits* mNewOrderBits;
+        CancelOrderBits* mCancelOrderBits;
+        ModifyOrderBits* mModifyOrderBits;
+        TradeCaptureBits* mTradeCaptureBits;
+
 };
 
 } // namespace neueda
