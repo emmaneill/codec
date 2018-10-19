@@ -29,10 +29,13 @@
 #define ORDER_CANCEL_REJECTED 0x2B
 #define ORDER_EXECUTION 0x2C
 #define TRADE_CANCEL_CORRECTED 0x2D
+#define TRADE_CAPTURE_REPORT 0x3C
 
 #define LOGIN_REQUEST 0x37
 #define CLIENT_HEARTBEAT 0x03
 #define NEW_ORDER 0x38
+#define CANCEL_ORDER 0x39
+#define MODIFY_ORDER 0x3A
 
 #define MIN_MSG_SIZE 10
 #define ORDER_MSG_BITFIELDS_SIZE 15
@@ -50,6 +53,8 @@ class boeCodec: public codec
         boeCodec()
         {
             mMsgTypes.insert(std::make_pair("37", "Login Request"));
+            mMsgTypes.insert(std::make_pair("38", "New Order"));
+            mMsgTypes.insert(std::make_pair("39", "Cancel Order"));
             mMsgTypes.insert(std::make_pair("24", "Login Response"));
             mMsgTypes.insert(std::make_pair("25", "Order Acknowledgment"));
             mMsgTypes.insert(std::make_pair("26", "Order Rejected"));
@@ -62,6 +67,8 @@ class boeCodec: public codec
             mMsgTypes.insert(std::make_pair("2A", "Order Cancelled"));
             mMsgTypes.insert(std::make_pair("2B", "Cancel Rejected"));
             mMsgTypes.insert(std::make_pair("2D", "Cancel Correct"));
+            mMsgTypes.insert(std::make_pair("3A", "Modify Order"));
+            mMsgTypes.insert(std::make_pair("3C", "Trade Capture Report"));
         }
 
         codecState decode (cdr& d,
@@ -112,6 +119,12 @@ class boeCodec: public codec
         codecState getLoginRequestV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
 
         codecState getNewOrderV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
+        
+        codecState getCancelOrderV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
+        
+        codecState getModifyOrderV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
+        
+        codecState getTradeCaptureReportV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
 
         codecState getClientHeartbeat (cdr& d, BoeHeaderPacket* hdr, size_t& used);
 

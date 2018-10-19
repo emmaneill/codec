@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <cstddef>NumberOfReturnBitfields
+#include <cstddef>
 #include <stdint.h>
 #include <stdexcept>
 #include "BoeHeaderPacket.h"

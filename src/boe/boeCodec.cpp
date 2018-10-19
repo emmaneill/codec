@@ -205,49 +205,49 @@ boeCodec::getOrderCancelledV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, si
 
         //Fourth byte - cannot be requested
         //Fifth byte
-        if (mOrderModifyBits->origClOrdId)
+        if (mOrderCancelledBits->origClOrdId)
         {
             d.setString (OrigClOrdID, getStringField (newBuf, 20, offset));
             offset += 20;
         }
 
-        if (mOrderModifyBits->leavesQty)
+        if (mOrderCancelledBits->leavesQty)
         {
             d.setInteger (LeavesQty, uint32_t (newBuf[offset]));
             offset += 4;
         }
 
-        if (mOrderModifyBits->lastShares)
+        if (mOrderCancelledBits->lastShares)
         {
             d.setInteger (LastShares, uint32_t (newBuf[offset]));
             offset += 4;
         }
 
-        if (mOrderModifyBits->lastPrice)
+        if (mOrderCancelledBits->lastPrice)
         {
             d.setInteger (LastPrice, uint64_t (newBuf[offset]));
             offset += 8;
         }
 
-        if (mOrderModifyBits->displayPrice)
+        if (mOrderCancelledBits->displayPrice)
         {
             d.setInteger (DisplayPrice, uint64_t (newBuf[offset]));
             offset += 8;
         }
 
-        if (mOrderModifyBits->workingPrice)
+        if (mOrderCancelledBits->workingPrice)
         {
             d.setInteger (WorkingPrice, uint64_t (newBuf[offset]));
             offset += 8;
         }
 
-        if (mOrderModifyBits->baseLiquidityIndicator)
+        if (mOrderCancelledBits->baseLiquidityIndicator)
         {
             d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset));
             offset += 1;
         }
 
-        if (mOrderModifyBits->expireTime)
+        if (mOrderCancelledBits->expireTime)
         {
             d.setString (ExpireTime, getStringField (newBuf, 8, offset));
             offset += 8;
@@ -1425,6 +1425,27 @@ boeCodec::getLoginRequestV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, size
                 mNewOrderBits = (NewOrderBits*) tmpbuf;
                 break;
             }
+            case CANCEL_ORDER:
+            {
+                //Set the rest of the char array elements to 0
+                memset (tmpbuf + numBitfields, 0, (CANCEL_ORDER_BITFIELDS_SIZE - numBitfields));
+                mCancelOrderBits = (CancelOrderBits*) tmpbuf;
+                break;
+            }
+            case MODIFY_ORDER:
+            {
+                //Set the rest of the char array elements to 0
+                memset (tmpbuf + numBitfields, 0, (MODIFY_ORDER_BITFIELDS_SIZE - numBitfields));
+                mModifyOrderBits = (ModifyOrderBits*) tmpbuf;
+                break;
+            }
+            case TRADE_CAPTURE_REPORT:
+            {
+                //Set the rest of the char array elements to 0
+                memset (tmpbuf + numBitfields, 0, (TRADE_CAPTURE_BITFIELDS_SIZE - numBitfields));
+                mTradeCaptureBits = (TradeCaptureBits*) tmpbuf;
+                break;
+            }
             default:
                 break;
             }
@@ -1654,6 +1675,312 @@ boeCodec::getNewOrderV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, size_t& 
     used += offset;
     return GW_CODEC_SUCCESS;
 }
+    
+codecState
+boeCodec::getCancelOrderV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, size_t& used)
+{
+    size_t offset = sizeof (BoeHeaderPacket) ;
+    d.setString (MessageName, "CancelOrderV2");
+    BoeCancelOrderPacket* packet = (BoeCancelOrderPacket*) ( (char*) buf + offset);
+    offset += sizeof (BoeCancelOrderPacket) ;
+    d.setString (OrigClOrdID, packet->getOrigClOrdID ());
+    int numBitfields = packet->getNumberOfCancelOrderBitfields ();
+    char* tmpbuf = new char[numBitfields];
+    memcpy ( (void*) tmpbuf, (void*) buf + offset, numBitfields);
+    memset (tmpbuf + numBitfields, 0, (CANCEL_ORDER_BITFIELDS_SIZE - numBitfields));
+    mCancelOrderBits = (CancelOrderBits*) tmpbuf;
+    offset += numBitfields;
+
+    //Get optional fields
+    if (mCancelOrderBits != NULL)
+    {
+        //Set optional fields
+        char* newBuf = (char*) buf;
+
+        if (mCancelOrderBits->hasClearingFirm)
+        {
+            d.setString (ClearingFirm,  getStringField (newBuf, 4, offset));
+            offset += 4;
+        }
+        //Second byte - cannot be requested
+    }
+
+    used += offset;
+    return GW_CODEC_SUCCESS;
+}  
+   
+codecState
+boeCodec::getModifyOrderV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, size_t& used)
+{
+    size_t offset = sizeof (BoeHeaderPacket) ;
+    d.setString (MessageName, "ModifyCancelOrderV2");
+    BoeModifyOrderPacket* packet = (BoeModifyOrderPacket*) ( (char*) buf + offset);
+    offset += sizeof (BoeModifyOrderPacket) ;
+    d.setString (ClOrdID, packet->getClOrdID ());
+    d.setString (OrigClOrdID, packet->getOrigClOrdID ());
+    int numBitfields = packet->getNumberOfModifyOrderBitfields ();
+    char* tmpbuf = new char[numBitfields];
+    memcpy ( (void*) tmpbuf, (void*) buf + offset, numBitfields);
+    memset (tmpbuf + numBitfields, 0, (MODIFY_ORDER_BITFIELDS_SIZE - numBitfields));
+    mModifyOrderBits = (ModifyOrderBits*) tmpbuf;
+    offset += numBitfields;
+
+    //Get optional fields
+    if (mModifyOrderBits != NULL)
+    {
+        //Set optional fields
+        char* newBuf = (char*) buf;
+
+        if (mModifyOrderBits->hasClearingFirm)
+        {
+            d.setString (ClearingFirm,  getStringField (newBuf, 4, offset));
+            offset += 4;
+        }
+        if (mModifyOrderBits->hasOrderQty && mModifyOrderBits->hasPrice) 
+        {
+            d.setInteger (OrderQuantity,  uint32_t (newBuf[offset]));
+            offset += 4;
+            d.setInteger (Price,  uint64_t (newBuf[offset]));
+            offset += 8;
+        }
+        else
+        {
+            setLastError ("Order quantity and price must be present for a modify order request");
+            return GW_CODEC_ERROR;
+        }
+        if (mModifyOrderBits->hasOrdType)
+        {
+            d.setString (OrdType,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mModifyOrderBits->hasCancelOrigOnReject)
+        {
+            d.setString (CancelOrigOnReject,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mModifyOrderBits->hasExecInst)
+        {
+            d.setString (ExecInst,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        //Second byte - cannot be requested
+    }
+    else 
+    {
+        setLastError ("Order quantity and price must be present for a modify order request");
+        return GW_CODEC_ERROR;
+    }
+
+    used += offset;
+    return GW_CODEC_SUCCESS;
+} 
+    
+codecState
+boeCodec::getTradeCaptureReportV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, size_t& used)
+{
+    size_t offset = sizeof (BoeHeaderPacket) ;
+    d.setString (MessageName, "TradeCaptureReportV2");
+    BoeTradeCapturePacket* packet = (BoeTradeCapturePacket*) ( (char*) buf + offset);
+    offset += sizeof (BoeTradeCapturePacket) ;
+    d.setString (TradeReportID, packet->getTradeReportID ());
+    d.setInteger (LastShares, packet->getLastShares ());
+    d.setInteger (LastPx, packet->getLastPx ());
+    int numBitfields = packet->getNumberOfTradeCaptureBitfields ();
+    char* tmpbuf = new char[numBitfields];
+    memcpy ( (void*) tmpbuf, (void*) buf + offset, numBitfields);
+    memset (tmpbuf + numBitfields, 0, (TRADE_CAPTURE_BITFIELDS_SIZE - numBitfields));
+    mTradeCaptureBits = (TradeCaptureBits*) tmpbuf;
+    offset += numBitfields;
+
+    //Get optional fields
+    if (mTradeCaptureBits != NULL)
+    {
+        //Set optional fields
+        char* newBuf = (char*) buf;
+
+        if (mTradeCaptureBits->hasSymbol)
+        {
+            d.setString (Symbol,  getStringField (newBuf, 8, offset));
+            offset += 8;
+        }
+        if (mTradeCaptureBits->hasCurrency)
+        {
+            d.setString (Currency,  getStringField (newBuf, 3, offset));
+            offset += 3;
+        }
+        if (mTradeCaptureBits->hasIDSource)
+        {
+            d.setString (IDSource,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasSecurityID)
+        {
+            d.setString (SecurityID,  getStringField (newBuf, 16, offset));
+            offset += 16;
+        }
+        if (mTradeCaptureBits->hasSecurityExchange)
+        {
+            d.setString (SecurityExchange,  getStringField (newBuf, 4, offset));
+            offset += 4;
+        }
+        if (mTradeCaptureBits->hasExecInst)
+        {
+            d.setString (ExecInst,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        //Second byte to do!
+        if (mTradeCaptureBits->hasCapacity)
+        {
+            d.setString (Capacity,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasAccount)
+        {
+            d.setString (Account,  getStringField (newBuf, 16, offset));
+            offset += 16;
+        }
+        if (mTradeCaptureBits->hasTransactionCategory)
+        {
+            d.setString (TransactionCategory,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasTradeTime)
+        {
+            d.setInteger (TradeTime,  uint64_t (newBuf[offset]));
+            offset += 8;
+        }
+        if (mTradeCaptureBits->hasPartyRole)
+        {
+            d.setString (PartyRole,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasTradeReportTransType)
+        {
+            d.setInteger (TradeReportTransType,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasTradeID)
+        {
+            d.setString (TradeID,  getStringField (newBuf, 8, offset));
+            offset += 8;
+        }
+        if (mTradeCaptureBits->hasVenueType)
+        {
+            d.setString (VenueType,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        //Third byte
+        if (mTradeCaptureBits->hasTradingSessionSubId)
+        {
+            d.setInteger (TradingSessionSubId,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasMatchType)
+        {
+            d.setInteger (MatchType,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+		if (mTradeCaptureBits->hasTrdSubType)
+        {
+            d.setInteger (TrdSubType,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasSecondaryTrdType)
+        {
+            d.setInteger (SecondaryTrdType,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasTradePriceCondition)
+        {
+            d.setInteger (TradePriceCondition,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasTradePublishIndicator)
+        {
+            d.setInteger (TradePublishIndicator,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasLargeSize)
+        {
+            d.setInteger (LargeSize,  uint64_t (newBuf[offset]));
+            offset += 8;
+        }
+        if (mTradeCaptureBits->hasExecutionMethod)
+        {
+            d.setString (ExecutionMethod,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        //Forth byte
+        if (mTradeCaptureBits->hasTradeReportType)
+        {
+            d.setString (TradeReportType,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasTradeHandlingInstruction)
+        {
+            d.setInteger (TradeHandlingInstruction,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasTradeLinkID)
+        {
+            d.setString (TradeLinkID,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasTradeReportRefID)
+        {
+            d.setString (TradeReportRefID,  getStringField (newBuf, 20, offset));
+            offset += 20;
+        }
+        if (mTradeCaptureBits->hasGrossTradeAmt)
+        {
+            d.setInteger (GrossTradeAmt,  uint64_t (newBuf[offset]));
+            offset += 8;
+        }
+        if (mTradeCaptureBits->hasTolerance)
+        {
+            d.setString (Tolerance,  getStringField (newBuf, 2, offset));
+            offset += 2;
+        }
+        if (mTradeCaptureBits->hasOrderCategory)
+        {
+            d.setInteger (OrderCategory,  uint8_t (newBuf[offset]));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasSettlementPrice)
+        {
+            d.setInteger (SettlementPrice,  uint64_t (newBuf[offset]));
+            offset += 8;
+        }
+        //Fifth byte
+        if (mTradeCaptureBits->hasSettlementDate)
+        {
+            d.setInteger (SettlementDate,  uint64_t (newBuf[offset]));
+            offset += 8;
+        }
+        if (mTradeCaptureBits->hasPriceFormation)
+        {
+            d.setString (PriceFormation,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasAlgorithmicIndicator)
+        {
+            d.setString (AlgorithmicIndicator,  getStringField (newBuf, 1, offset));
+            offset += 1;
+        }
+        if (mTradeCaptureBits->hasSettlementCurrency)
+        {
+            d.setString (SettlementCurrency,  getStringField (newBuf, 3, offset));
+            offset += 3;
+        }
+        if (mTradeCaptureBits->hasSettlementLocation)
+        {
+            d.setString (SettlementLocation,  getStringField (newBuf, 2, offset));
+            offset += 2;
+        }
+    } //todo add in noSides and additional/optional fields 
+    used += offset;
+    return GW_CODEC_SUCCESS;
+} 
 
 codecState
 boeCodec::decode (cdr& d, const void* buf, size_t len, size_t& used)
@@ -1713,6 +2040,8 @@ boeCodec::decode (cdr& d, const void* buf, size_t len, size_t& used)
         return getClientHeartbeat (d, hdr, used);
     case NEW_ORDER:
         return getNewOrderV2 (d, hdr, buf, used);
+    case CANCEL_ORDER:
+        return getCancelOrderV2 (d, hdr, buf, used);
     default:
         setLastError ("unknown message type");
         return GW_CODEC_ERROR;

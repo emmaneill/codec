@@ -2187,6 +2187,20 @@ using namespace std;
 #define DisplayPrice 4244
 #define WorkingPrice 4245
 #define IDSource 4246
+#define CancelOrigOnReject 4247
+#define TransactionCategory 4248
+#define TradingSessionSubId 4249
+#define TradePriceCondition 4250
+#define LargeSize 4251
+#define ExecutionMethod 4252
+#define TradeHandlingInstruction 4253
+#define Tolerance 4254
+#define SettlementPrice 4255
+#define SettlementDate 4256
+#define PriceFormation 4257
+#define SettlementCurrency 4258
+#define SettlementLocation 4259
+
 namespace neueda
 {
 

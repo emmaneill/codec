@@ -9,6 +9,9 @@
 /* #include "BoeHeaderPacket.h" */
 #include "BoeLoginRequestPacket.h"
 #include "BoeNewOrderPacket.h"
+#include "BoeCancelOrderPacket.h"
+#include "BoeModifyOrderPacket.h"
+#include "BoeTradeCapturePacket.h"
 #include "BoeLoginResponsePacket.h"
 #include "BoeOrderAcknowledgementPacket.h"
 #include "BoeLogoutResponsePacket.h"
