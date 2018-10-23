@@ -7,7 +7,10 @@
 #define BOE_PACKETS_H
 
 /* #include "BoeHeaderPacket.h" */
+#include "BoeTradeCaptureReportPacket.h"
 #include "BoeLoginRequestPacket.h"
+#include "BoeCancelOrderPacket.h"
+#include "BoeModifyOrderPacket.h"
 #include "BoeNewOrderPacket.h"
 #include "BoeLoginResponsePacket.h"
 #include "BoeOrderAcknowledgementPacket.h"

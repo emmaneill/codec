@@ -26,7 +26,7 @@ PACKED(class BoeOrderRejectedPacket
         char                    mOrderRejectReason[1];
         char                    mOrderRejectText[60];
         char                    mReservedInternal[1];
-        uint8_t	                mNumberOfReturnBitfields;
+        uint8_t	                mNumberOfBitfields;
         
         uint64_t getTransactionTime()
         {
@@ -48,9 +48,9 @@ PACKED(class BoeOrderRejectedPacket
 	        return getString(mOrderRejectText, sizeof(mOrderRejectText));
     	}
         
-        uint8_t getNumberOfReturnBitfields()
+        uint8_t getNumberOfBitfields()
         {
-            return mNumberOfReturnBitfields;
+            return mNumberOfBitfields;
         } 
 
         bool setTransactionTime(uint64_t val)
@@ -74,9 +74,9 @@ PACKED(class BoeOrderRejectedPacket
             return setString(mOrderRejectText, (unsigned char*)buf, 60);
         }
         
-        bool setNumberOfReturnBitfields(uint8_t buf)
+        bool setNumberOfBitfields(uint8_t buf)
         {
-            mNumberOfReturnBitfields = buf;
+            mNumberOfBitfields = buf;
             return true;
         }
 });

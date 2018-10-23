@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <cstddef>NumberOfReturnBitfields
+#include <cstddef>
 #include <stdint.h>
 #include <stdexcept>
 #include "BoeHeaderPacket.h"
@@ -26,7 +26,7 @@ PACKED(class BoeModifyRejectedPacket
         char                    mModifyRejectReason[1];
         char                    mModifyRejectText[60];
         char                    mReservedInternal[1];
-        uint8_t	                mNumberOfReturnBitfields;
+        uint8_t	                mNumberOfBitfields;
         
         uint64_t getTransactionTime()
         {
@@ -48,9 +48,9 @@ PACKED(class BoeModifyRejectedPacket
 	        return getString(mModifyRejectText, sizeof(mModifyRejectText));
     	}
         
-        uint8_t getNumberOfReturnBitfields()
+        uint8_t getNumberOfBitfields()
         {
-            return mNumberOfReturnBitfields;
+            return mNumberOfBitfields;
         } 
 
         bool setTransactionTime(uint64_t val)
@@ -74,9 +74,9 @@ PACKED(class BoeModifyRejectedPacket
             return setString(mModifyRejectText, (unsigned char*)buf, 60);
         }
         
-        bool setNumberOfReturnBitfields(uint8_t buf)
+        bool setNumberOfBitfields(uint8_t buf)
         {
-            mNumberOfReturnBitfields = buf;
+            mNumberOfBitfields = buf;
             return true;
         }
 });

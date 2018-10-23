@@ -30,7 +30,7 @@ PACKED(class BoeOrderExecutionPacket
         char                    mSubLiquidityIndicator[1];
         char                    mContraBroker[4];
         char                    mReservedInternal[1];
-        uint8_t                 mNumberOfReturnBitfields;
+        uint8_t                 mNumberOfBitfields;
 
 
         BoeOrderExecutionPacket ()
@@ -82,9 +82,9 @@ PACKED(class BoeOrderExecutionPacket
             return getString(mContraBroker, sizeof(mContraBroker));
         }
 
-        uint16_t getNumberOfReturnBitfields ()
+        uint16_t getNumberOfBitfields ()
         {
-            return mNumberOfReturnBitfields;
+            return mNumberOfBitfields;
         }
 
         bool setTransactionTime(uint64_t val)
@@ -137,9 +137,9 @@ PACKED(class BoeOrderExecutionPacket
             return setString(mContraBroker, val, 4);
         }
 
-        bool setNumberOfReturnBitfields(uint8_t val)
+        bool setNumberOfBitfields(uint8_t val)
         {
-            mNumberOfReturnBitfields = val;
+            mNumberOfBitfields = val;
             return true;
         }
 

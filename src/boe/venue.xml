@@ -1,0 +1,2094 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbe:messageSchema xmlns:sbe="http://fixprotocol.io/2016/sbe" xmlns:enx="http://www.euronext.com/dd" xmlns:str="http://exslt.org/strings" xmlns:ext="http://exslt.org/common" package="com.euronext.optiq.dd" id="0" version="102" semanticVersion="1.3.2" description="OEG Binary" byteOrder="littleEndian">
+  <types>
+    <type name="unsigned_char" primitiveType="uint8" nullValue="255" presence="optional" minValue="0" maxValue="254"/>
+    <type name="int8_t" primitiveType="int8" nullValue="-128" presence="optional" minValue="-127" maxValue="127"/>
+    <type name="uint16_t" primitiveType="uint16" nullValue="65535" presence="optional" minValue="0" maxValue="65534"/>
+    <type name="uint32_t" primitiveType="uint32" nullValue="4294967295" presence="optional" minValue="0" maxValue="4294967294"/>
+    <type name="uint64_t" primitiveType="uint64" nullValue="18446744073709551615" presence="optional" minValue="0" maxValue="18446744073709551614"/>
+    <type name="int32_t" primitiveType="int32" nullValue="-2147483648" presence="optional" minValue="-2147483647" maxValue="2147483647"/>
+    <type name="int64_t" primitiveType="int64" nullValue="-9223372036854775808" presence="optional" minValue="-9223372036854775807" maxValue="9223372036854775807"/>
+    <type name="time_t" primitiveType="uint64" nullValue="0" presence="optional"/>
+    <!-- Auto generated list of character types -->
+    <type name="char1" length="1" primitiveType="char"/>
+    <type name="char2" length="2" primitiveType="char"/>
+    <type name="char3" length="3" primitiveType="char"/>
+    <type name="char4" length="4" primitiveType="char"/>
+    <type name="char5" length="5" primitiveType="char"/>
+    <type name="char6" length="6" primitiveType="char"/>
+    <type name="char8" length="8" primitiveType="char"/>
+    <type name="char10" length="10" primitiveType="char"/>
+    <type name="char11" length="11" primitiveType="char"/>
+    <type name="char12" length="12" primitiveType="char"/>
+    <type name="char13" length="13" primitiveType="char"/>
+    <type name="char15" length="15" primitiveType="char"/>
+    <type name="char16" length="16" primitiveType="char"/>
+    <type name="char18" length="18" primitiveType="char"/>
+    <type name="char20" length="20" primitiveType="char"/>
+    <type name="char25" length="25" primitiveType="char"/>
+    <type name="char27" length="27" primitiveType="char"/>
+    <type name="char30" length="30" primitiveType="char"/>
+    <type name="char32" length="32" primitiveType="char"/>
+    <type name="char52" length="52" primitiveType="char"/>
+    <type name="char60" length="60" primitiveType="char"/>
+    <type name="char102" length="102" primitiveType="char"/>
+    <composite name="bitfield" description="Group to represent repeated bitfields">
+      <type name="bitfield" primitiveType="uint8"/>
+    </composite>
+    <composite name="SideGroup" description="Group to represent side information">
+        <type name ="Side" primitiveType ="Side_enum"/>
+        <type name ="Capacity" primitiveType ="Capacity_enum"/>
+        <type name ="PartyID" primitiveType ="char4"/>
+        <type name ="Account" primitiveType ="char16"/>
+        <type name ="PartyRole" primitiveType ="PartyRole_enum"/>
+    </composite>
+    <composite name="messageHeader" description="Message identifiers and length of message root">
+      <type name="startOfMessage" primitiveType="char2"/>
+      <type name="messageLength" primitiveType="uint16"/>
+      <type name="messageType" primitiveType="char"/>
+      <type name="matchingUnit" primitiveType="uint8"/>
+      <type name="sequenceNumber" primitiveType="uint32"/>
+    </composite>
+	<enum name="LoginResponseStatus_enum" encodingType="uint8">
+      <validValue name="Login_Accepted">0</validValue>
+      <validValue name="Not_Authorized">1</validValue>
+      <validValue name="Session_is_Disabled">2</validValue>
+      <validValue name="Session_In_Use">3</validValue>
+      <validValue name="Sequence_Ahead_Of_Login">4</validValue>
+      <validValue name="Invalid_Unit_in_Login">5</validValue>
+      <validValue name="Invalid_Return_Bitfield_in_Login">6</validValue>
+      <validValue name="Invalid_Login_Request_Structure">7</validValue>
+    </enum>
+	<enum name="LogoutResponseStatus_enum" encodingType="uint8">
+      <validValue name="User_Requested">0</validValue>
+      <validValue name="End_Of_Day">1</validValue>
+      <validValue name="Administrative">2</validValue>
+      <validValue name="Protocol_Violation">3</validValue>
+    </enum>
+	<enum name="Side_enum" encodingType="uint8">
+      <validValue name="Buy">0</validValue>
+      <validValue name="Sell">1</validValue>
+      <validValue name="Sell_Short">2</validValue>
+      <validValue name="Sell_Short_Exempt">3</validValue>
+      <validValue name="Sell_Undisclosed">4</validValue>
+    </enum>
+	<enum name="RestatementReason_enum" encodingType="uint8">
+      <validValue name="Reroute">0</validValue>
+      <validValue name="Locked_In_Cross">1</validValue>
+      <validValue name="Wash">2</validValue>
+      <validValue name="Reload">3</validValue>
+      <validValue name="Liquidity_Updated">4</validValue>
+    </enum>
+	<enum name="Capacity_enum" encodingType="uint8">
+      <validValue name="Agency">0</validValue>
+      <validValue name="Principal">1</validValue>
+      <validValue name="Riskless_Capacity">2</validValue>
+    </enum>
+	<enum name="PartyRole_enum" encodingType="uint8">
+      <validValue name="Executing_Firm">0</validValue>
+      <validValue name="Entering_Firm">1</validValue>
+      <validValue name="Contra_Firm">2</validValue>
+    </enum>
+	<enum name="ReasonCodes_enum" encodingType="uint8">
+      <validValue name="Admin">0</validValue>
+      <validValue name="Duplicate_Identifier">1</validValue>
+      <validValue name="Halted">2</validValue>
+      <validValue name="Incorrect_Data_Center">3</validValue>
+      <validValue name="Too_Late_to_Cancel">4</validValue>
+      <validValue name="Order_Rate_Threshold_Exceeded">5</validValue>
+      <validValue name="Pending_Periodic_Auction">6</validValue>
+      <validValue name="Price_Exceed_Cross_Range">7</validValue>
+      <validValue name="Liquidity_Available_Exceeds_Order_Size">7</validValue>
+      <validValue name="Ran_Out_of_Liquidity_to_Execute_Against">8</validValue>
+      <validValue name="ClOrdID_Doesn’t_Match_a_Known_Order">9</validValue>
+      <validValue name="Can’t_Modify_an_Order_That_is_Pending_Fill">10</validValue>
+      <validValue name="Waiting_For_First_Trade">11</validValue>
+      <validValue name="Routing_Unavailable">12</validValue>
+      <validValue name="Routing_Order_Would_Trade_Through_an_Away_Destination">13</validValue>
+      <validValue name="User_Requested">14</validValue>
+      <validValue name="Would_Wash">15</validValue>
+      <validValue name="Add_Liquidity_Only_Order_Would_Remove">15</validValue>
+      <validValue name="Order_Expired">16</validValue>
+      <validValue name="Symbol_Not_Supported">17</validValue>
+      <validValue name="Unforeseen_Reason">18</validValue>
+      <validValue name="Large_in_Scale">19</validValue>
+      <validValue name="Market_Access_Risk_Limit_Exceeded">19</validValue>
+      <validValue name="Max_Open_Orders_Count_Exceeded">20</validValue>
+      <validValue name="Static_Collar_Breach">21</validValue>
+      <validValue name="Reserve_Reload">22</validValue>
+      <validValue name="Risk_Management_Symbol_Level">23</validValue>
+      <validValue name="Crossed_Market">24</validValue>
+      <validValue name="MiFID_II_Double_Cap_related">25</validValue>
+      <validValue name="Order_Received_by_Cboe_During_Replay">26</validValue>
+    </enum>
+    </types>
+  <sbe:message name="LoginRequest" id="1">
+    <!--Expanding sub message-->
+    <field id="1" name="TradingSessionSubID" type="char4"/>
+    <field id="2" name="username" type="char4"/>
+    <field id="3" name="password" type="char10"/>
+    <field id="4" name="numberOfParamGroups" type="int8_t"/>
+  </sbe:message>
+  <sbe:message name="LoginResponse" id="2">
+    <!--Expanding sub message-->
+    <field id="1" name="loginResponseStatus" type="LoginResponseStatus_enum"/>
+    <field id="2" name="loginResponseText" type="char60"/>
+    <field id="3" name="noUnspecifiedUnitReplay" type="uint8_t"/>
+    <field id="4" name="lastReceivedSequenceNumber" type="uint32_t"/>
+    <field id="5" name="numberOfUnits" type="uint8_t"/>
+  </sbe:message>
+  <sbe:message name="LogoutResponse" id="3">
+    <!--Expanding sub message-->
+    <field id="1" name="LogoutReason" type="LogoutResponseStatus_enum"/>
+    <field id="2" name="LogoutReasonText" type="char60"/>
+    <field id="3" name="lastReceivedSequenceNumber" type="uint32_t"/>
+    <field id="4" name="NumberOfUnits" type="uint8_t"/>
+  </sbe:message>
+  <sbe:message name="ServerHeartbeat" id="4"/>
+  <sbe:message name="ReplayComplete" id="5"/>
+  <sbe:message name="NewOrder" id="6">
+    <!--Expanding sub message-->
+    <field id="1" name="clOrdID" type="char20"/>
+    <field id="2" name="side" type="Side_enum"/>
+    <field id="3" name="orderQty" type="uint32_t"/>
+    <field id="4" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="5" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="6" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="7" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="8" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="9" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="10" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="11" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="12" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="13" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="14" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="15" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="16" name="Currency" presence="bitfield" type="char3"/>
+    <field id="17" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="18" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="19" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="20" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="21" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="22" name="Account" presence="bitfield" type="char16"/>
+    <field id="23" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="24" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="25" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="26" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="27" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="28" name="LocateRequired" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="29" name="ExpireTime" presence="bitfield" type="uint64_t"/>
+    <field id="30" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="31" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="32" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="RiskReset" presence="bitfield" type="uint8_t" ignore="true"/> 
+    <field id="34" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="CMTANumber" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="TargetPartyID" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="38" name="Reserved" presence="bitfield" ignore="true" type="uint8_t"/>
+    <field id="39" name="AttributedQuote" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="BookingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="41" name="ExtExecInst" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="42" name="ClientID" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="InvestorID" presence="bitfield" type="uint32_t"/>
+    <field id="44" name="ExecutorID" presence="bitfield" type="uint32_t"/>
+    <field id="45" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="46" name="DisplayRange" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="47" name="StopPx" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="48" name="RoutStrategy" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="RouteDeliveryMethod" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="50" name="ExDestination" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="51" name="EchoText" presence="bitfield" type="uint8_t" ignore="true"/> 
+    <field id="52" name="AuctionId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="53" name="RoutingFirmID" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="54" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="55" name="CustomGroupId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="56" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="57" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="58" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="59" name="CtiCode" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="60" name="ManualOrderIndicator" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="61" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="62" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="63" name="SIIndicator" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="64" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="65" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/> 
+    <field id="66" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="67" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>   
+    <field id="68" name="Reserved6" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="69" name="Reserved7" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="CancelOrder" id="7">
+    <!--Expanding sub message-->
+    <field id="1" name="ClOrdID" type="char20"/>
+    <field id="2" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="3" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="4" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="5" name="MassCancelLockout" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="6" name="MassCancel" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="7" name="OsiRoot" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="8" name="MassCancelId" presence="bitfield" type="uint8_t" ignore="true"/> 
+    <field id="9" name="RoutingFirmId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="10" name="ManualOrderIndicator" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="11" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="12" name="MassCancelInst" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="13" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="14" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="15" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/> 
+    <field id="16" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="17" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>   
+    <field id="18" name="Reserved6" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="19" name="Reserved7" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="ModifyOrder" id="8">
+    <!--Expanding sub message-->
+    <field id="1" name="clOrdID" type="char20"/>
+    <field id="2" name="origClOrdID" type="char20"/>
+    <field id="3" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="4" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="5" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="6" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="7" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="8" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="9" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="10" name="CancelOrigOnReject" presence="bitfield" type="char1"/>
+    <field id="11" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="12" name="Side" presence="bitfield" type="char1" ignore="true"/>
+    <field id="13" name="MaxFloor" presence="bitfield" type="uint32_t" ignore="true"/>
+    <field id="14" name="StopPx" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="15" name="RoutingFirmId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="16" name="ManualOrderIndicator" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="17" name="OperatorId"  presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="18" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="19" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="20" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/> 
+  </sbe:message>
+  <sbe:message name="TradeCaptureReport" id="6">
+    <!--Expanding sub message-->
+    <field id="1" name="tradeReportID" type="char20"/>
+    <field id="2" name="lastShares" type="uint32_t"/>
+    <field id="3" name="lastPx" type="uint64_t"/>
+    <field id="4" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="5" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="6" name="NoSides" type="uint8_t"/>
+    <field id="7" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="8" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="9" name="Currency" presence="bitfield" type="char3"/>
+    <field id="10" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="11" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="12" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="13" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="14" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="15" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="16" name="Account" presence="bitfield" type="char16"/>
+    <field id="17" name="TransactionCategory" presence="bitfield" type="char1"/>
+    <field id="18" name="TradeTime" presence="bitfield" type="uint64_t"/>
+    <field id="19" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="20" name="TradeReportTransType" presence="bitfield" type="uint8_t"/>
+    <field id="21" name="TradeID" presence="bitfield" type="uint64_t"/>
+    <field id="22" name="VenueType" presence="bitfield" type="char1"/>
+    <field id="23" name="TradingSessionSubID" presence="bitfield" type="uint8_t"/>
+    <field id="24" name="MatchType" presence="bitfield" type="uint8_t"/>
+    <field id="25" name="TrdSubType" presence="bitfield" type="uint8_t"/>
+    <field id="26" name="SecondaryTrdType" presence="bitfield" type="uint8_t"/>
+    <field id="27" name="TradePriceCondition" presence="bitfield" type="uint8_t"/>
+    <field id="28" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="29" name="ExecutionMethod" presence="bitfield" type="char1"/>
+    <field id="30" name="TradeReportType" presence="bitfield" type="uint8_t"/>
+    <field id="31" name="TradeHandlingInstruction" presence="bitfield" type="uint8_t"/>
+    <field id="32" name="TradeLinkID" presence="bitfield" type="char1"/>
+    <field id="33" name="TradeReportRefID" presence="bitfield" type="char20"/>
+    <field id="34" name="GrossTradeAmt" presence="bitfield" type="uint64_t"/>
+    <field id="35" name="Tolerance" presence="bitfield" type="uint16_t"/>
+    <field id="36" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="37" name="SettlementPrice" presence="bitfield" type="uint64_t"/>
+    <field id="38" name="SettlementDate" presence="bitfield" type="uint64_t"/>
+    <field id="39" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="40" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="41" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="42" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="43" name="SettlementCurrency" presence="bitfield" type="char3"/>
+    <field id="44" name="SettlementLocation" presence="bitfield" type="char2"/>
+    <field id="45" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="46" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+	<!--Expand for optional fields and repeating groups-->
+  </sbe:message>
+  <sbe:message name="OrderAcknowledgement" id="7">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="orderID" type="char8"/>
+    <field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="5" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="6" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="7" name="Side" presence="bitfield" type="char1"/>
+    <field id="8" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="9" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="10" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="11" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="12" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="13" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="14" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="15" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="16" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="17" name="Currency" presence="bitfield" type="char3"/>
+    <field id="18" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="19" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="20" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="21" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="22" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="23" name="Account" presence="bitfield" type="char16"/>
+    <field id="24" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="25" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="26" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="27" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="28" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="29" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="30" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="31" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="32" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="34" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="37" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="38" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="40" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="41" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="42" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="43" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="44" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="45" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="46" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="47" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="48" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="50" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="51" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="52" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="53" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="54" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="55" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="56" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="57" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="58" name="Text" presence="bitfield" type="char60"/>
+    <field id="59" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="60" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="61" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="62" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="63" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="64" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="65" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="66" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="67" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="68" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="69" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="70" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="71" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="72" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="73" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="74" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="75" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="76" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="77" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="78" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="79" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="80" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="81" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="82" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="83" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="84" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="85" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="86" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="87" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="88" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="89" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="90" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="91" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="92" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="93" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="94" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="95" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="96" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="97" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="98" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="99" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="100" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="101" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="102" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="103" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="104" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="105" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="107" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="108" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="109" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="110" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="111" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="112" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="113" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="114" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="115" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="116" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="117" name="Username" presence="bitfield" type="char4"/>
+    <field id="118" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="119" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="120" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="121" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="122" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="TradePublishInd" presence="bitfield" type="char1" ignore="true"/>
+    <field id="124" name="ReportTime" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="125" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="126" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="OrderRejected" id="8">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="orderID" type="char8"/>
+    <field id="4" name="orderRejectReason" type="char8"/>
+    <field id="5" name="orderRejectText" type="char60"/>
+	<field id="6" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="7" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="8" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="9" name="Side" presence="bitfield" type="char1"/>
+    <field id="10" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="11" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="12" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="13" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="14" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="15" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="16" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="17" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="18" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="19" name="Currency" presence="bitfield" type="char3"/>
+    <field id="20" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="21" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="22" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="23" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="24" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="25" name="Account" presence="bitfield" type="char16"/>
+    <field id="26" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="27" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="28" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="29" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="30" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="31" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="32" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="33" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="34" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="38" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="39" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="41" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="42" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="44" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="45" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="46" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="47" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="48" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="49" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="50" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="51" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="52" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="53" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="54" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="55" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="56" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="57" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="58" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="59" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="60" name="Text" presence="bitfield" type="char60"/>
+    <field id="61" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="62" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="63" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="64" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="65" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="66" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="67" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="68" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="69" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="70" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="71" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="72" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="73" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="74" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="75" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="76" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="77" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="78" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="79" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="80" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="81" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="82" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="83" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="84" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="85" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="86" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="87" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="88" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="89" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="90" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="91" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="92" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="93" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="94" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="95" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="96" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="97" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="98" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="99" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="100" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="101" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="102" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="103" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="104" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="105" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="107" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="108" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="109" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="110" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="111" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="112" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="113" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="114" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="115" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="116" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="117" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="118" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="119" name="Username" presence="bitfield" type="char4"/>
+    <field id="120" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="121" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="122" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="124" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="125" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="126" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="127" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="128" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="OrderModified" id="9">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="orderID" type="char8"/>
+	<field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="5" name="numberOfBitfields" type="uint8_t"/>
+    <field id="6" name="Side" presence="bitfield" type="char1"/>
+    <group dimensionType="bitfield" id="7" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="8" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="22" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="23" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="24" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="25" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="26" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="27" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="28" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="29" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="30" name="Currency" presence="bitfield" type="char3"/>
+    <field id="31" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="32" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="33" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="34" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="35" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="Account" presence="bitfield" type="char16"/>
+    <field id="37" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="38" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="39" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="40" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="41" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="42" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="44" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="45" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="46" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="47" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="48" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="50" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="51" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="52" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="53" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="54" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="55" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="56" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="57" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="58" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="59" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="60" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="61" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="62" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="63" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="64" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="65" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="66" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="67" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="68" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="69" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="70" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="71" name="Text" presence="bitfield" type="char60"/>
+    <field id="72" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="73" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="74" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="75" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="76" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="77" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="78" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="79" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="80" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="81" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="82" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="83" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="84" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="85" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="86" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="87" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="88" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="89" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="90" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="91" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="92" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="93" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="94" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="95" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="96" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="97" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="98" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="99" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="100" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="101" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="102" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="103" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="104" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="105" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="106" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="107" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="108" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="109" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="110" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="111" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="112" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="113" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="114" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="115" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="116" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="117" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="118" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="119" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="120" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="121" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="122" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="124" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="125" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="126" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="127" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="128" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="129" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="130" name="Username" presence="bitfield" type="char4"/>
+    <field id="131" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="132" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="133" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="134" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="135" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="136" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="137" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="138" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="139" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="OrderRestated" id="10">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="orderID" type="char8"/>
+    <field id="4" name="restatementReason" type="RestatementReason_enum"/>
+	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="6" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="7" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="8" name="Side" presence="bitfield" type="char1"/>
+    <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="10" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="11" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="12" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="13" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="14" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="15" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="16" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="17" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="18" name="Currency" presence="bitfield" type="char3"/>
+    <field id="19" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="20" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="21" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="22" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="23" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="24" name="Account" presence="bitfield" type="char16"/>
+    <field id="25" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="26" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="27" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="28" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="29" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="30" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="31" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="32" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="34" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="38" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="41" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="42" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="44" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="45" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="48" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="52" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="53" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="54" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="55" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="56" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="57" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="58" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="59" name="Text" presence="bitfield" type="char60"/>
+    <field id="60" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="61" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="62" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="63" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="64" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="65" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="66" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="67" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="68" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="69" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="70" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="71" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="72" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="73" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="74" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="75" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="76" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="77" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="78" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="79" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="80" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="81" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="82" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="83" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="84" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="85" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="86" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="87" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="88" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="89" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="90" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="91" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="92" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="93" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="94" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="95" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="96" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="97" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="98" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="99" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="100" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="101" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="102" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="103" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="104" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="105" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="107" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="108" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="109" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="110" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="111" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="112" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="113" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="114" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="115" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="117" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="118" name="Username" presence="bitfield" type="char4"/>
+    <field id="119" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="120" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="121" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="122" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="124" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="125" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="126" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="UserModifyRejected" id="11">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="modifyRejectReason" type="ReasonCodes_enum"/>
+    <field id="4" name="modifyRejectText" type="char60"/>
+	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="6" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="7" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="8" name="Side" presence="bitfield" type="char1"/>
+    <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="10" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="11" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="12" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="13" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="14" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="15" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="16" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="17" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="18" name="Currency" presence="bitfield" type="char3"/>
+    <field id="19" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="20" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="21" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="22" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="23" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="24" name="Account" presence="bitfield" type="char16"/>
+    <field id="25" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="26" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="27" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="28" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="29" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="30" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="31" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="32" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="34" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="38" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="41" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="42" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="44" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="45" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="48" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="52" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="53" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="54" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="55" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="56" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="57" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="58" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="59" name="Text" presence="bitfield" type="char60"/>
+    <field id="60" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="61" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="62" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="63" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="64" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="65" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="66" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="67" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="68" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="69" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="70" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="71" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="72" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="73" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="74" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="75" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="76" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="77" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="78" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="79" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="80" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="81" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="82" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="83" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="84" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="85" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="86" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="87" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="88" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="89" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="90" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="91" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="92" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="93" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="94" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="95" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="96" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="97" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="98" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="99" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="100" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="101" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="102" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="103" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="104" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="105" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="107" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="108" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="109" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="110" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="111" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="112" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="113" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="114" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="115" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="117" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="118" name="Username" presence="bitfield" type="char4"/>
+    <field id="119" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="120" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="121" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="122" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="124" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="125" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="126" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="OrderCancelled" id="12">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="cancelReason" type="ReasonCodes_enum"/>
+	<field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="5" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="6" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="7" name="Side" presence="bitfield" type="char1"/>
+    <field id="8" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="9" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="10" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="11" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="12" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="13" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="13" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="14" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="15" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="16" name="Currency" presence="bitfield" type="char3"/>
+    <field id="17" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="18" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="19" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="20" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="21" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="22" name="Account" presence="bitfield" type="char16"/>
+    <field id="23" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="24" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="25" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="26" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="27" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="28" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="29" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="30" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="31" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="32" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="34" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="36" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="38" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="39" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="40" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="41" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="42" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="43" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="44" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="45" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="46" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="47" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="48" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="49" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="50" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="51" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="52" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="53" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="54" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="55" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="56" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="57" name="Text" presence="bitfield" type="char60"/>
+    <field id="58" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="59" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="60" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="61" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="62" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="63" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="64" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="65" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="66" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="67" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="68" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="69" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="70" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="71" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="72" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="73" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="74" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="75" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="76" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="77" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="78" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="79" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="80" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="81" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="82" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="83" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="84" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="85" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="86" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="87" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="88" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="89" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="90" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="91" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="92" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="93" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="94" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="95" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="96" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="97" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="98" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="99" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="100" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="101" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="102" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="103" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="104" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="105" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="106" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="107" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="108" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="109" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="110" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="111" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="112" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="113" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="114" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="115" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="Username" presence="bitfield" type="char4"/>
+    <field id="117" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="118" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="119" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="120" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="121" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="122" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="123" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="124" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="125" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="CancelRejected" id="13">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="cancelRejectReason" type="ReasonCodes_enum"/>
+    <field id="4" name="cancelRejectText" type="char60"/>
+	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="6" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="7" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="8" name="Side" presence="bitfield" type="char1"/>
+    <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="10" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="11" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="12" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="13" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="14" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="15" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="16" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="17" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="18" name="Currency" presence="bitfield" type="char3"/>
+    <field id="19" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="20" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="21" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="22" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="23" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="24" name="Account" presence="bitfield" type="char16"/>
+    <field id="25" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="26" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="27" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="28" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="29" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="30" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="31" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="32" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="34" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="38" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="41" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="42" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="44" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="45" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="48" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="52" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="53" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="54" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="55" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="56" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="57" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="58" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="59" name="Text" presence="bitfield" type="char60"/>
+    <field id="60" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="61" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="62" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="63" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="64" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="65" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="66" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="67" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="68" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="69" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="70" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="71" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="72" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="73" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="74" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="75" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="76" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="77" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="78" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="79" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="80" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="81" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="82" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="83" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="84" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="85" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="86" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="87" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="88" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="89" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="90" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="91" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="92" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="93" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="94" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="95" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="96" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="97" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="98" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="99" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="100" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="101" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="102" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="103" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="104" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="105" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="107" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="108" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="109" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="110" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="111" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="112" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="113" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="114" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="115" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="117" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="118" name="Username" presence="bitfield" type="char4"/>
+    <field id="119" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="120" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="121" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="122" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="124" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="125" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="126" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="OrderExecution" id="14">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="execID" type="uint64_t"/>
+    <field id="4" name="lastShares" type="uint32_t"/>
+	<field id="5" name="lastPx" type="uint64_t"/>
+	<field id="6" name="leavesQty" type="uint32_t"/>
+	<field id="7" name="baseLiquidityIndicator" type="char1"/>
+	<field id="8" name="subLiquidityIndicator" type="char1"/>
+	<field id="9" name="contraBroker" type="char4"/>
+	<field id="10" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="11" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="12" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="13" name="Side" presence="bitfield" type="char1"/>
+    <field id="14" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="15" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="16" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="17" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="18" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="19" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="20" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="21" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="22" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="23" name="Currency" presence="bitfield" type="char3"/>
+    <field id="24" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="25" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="26" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="27" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="28" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="29" name="Account" presence="bitfield" type="char16"/>
+    <field id="30" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="31" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="32" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="33" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="34" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="36" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="37" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="38" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="41" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="42" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="44" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="45" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="46" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="47" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="48" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="50" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="51" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="52" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="53" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="54" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="55" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="56" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="57" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="58" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="59" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="60" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="61" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="62" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="63" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="64" name="Text" presence="bitfield" type="char60"/>
+    <field id="65" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="66" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="67" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="68" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="69" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="70" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="71" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="72" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="73" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="74" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="75" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="76" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="77" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="78" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="79" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="80" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="81" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="82" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="83" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="84" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="85" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="86" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="87" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="88" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="89" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="90" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="91" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="92" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="93" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="94" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="95" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="96" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="97" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="98" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="99" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="100" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="101" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="102" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="103" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="104" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="105" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="107" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="108" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="109" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="110" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="111" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="112" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="113" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="114" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="115" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="117" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="118" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="119" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="120" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="121" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="122" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="Username" presence="bitfield" type="char4"/>
+    <field id="124" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="125" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="126" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="128" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="129" name="TradePublishInd" presence="bitfield" type="char1" ignore="true"/>
+    <field id="130" name="ReportTime" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="131" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="132" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="TradeCancelCorrect" id="15">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="clOrdID" type="char20"/>
+    <field id="3" name="orderID" type="uint64_t"/>
+    <field id="4" name="execRefID" type="uint64_t"/>
+	<field id="5" name="side" type="Side_enum"/>
+	<field id="7" name="baseLiquidityIndicator" type="char1"/>
+	<field id="7" name="clearingFirm" type="char4"/>
+	<field id="7" name="clearingAccount" type="char4"/>
+	<field id="4" name="lastShares" type="uint32_t"/>
+	<field id="5" name="lastPx" type="uint64_t"/>
+	<field id="9" name="correctedPrice" type="uint64_t"/>
+	<field id="9" name="origTime" type="char8"/>
+	<field id="10" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="11" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="12" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="13" name="Side" presence="bitfield" type="char1"/>
+    <field id="14" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="15" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="16" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="17" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="18" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="19" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="20" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="21" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="22" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="23" name="Currency" presence="bitfield" type="char3"/>
+    <field id="24" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="25" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="26" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="27" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="28" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="29" name="Account" presence="bitfield" type="char16"/>
+    <field id="30" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="31" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="32" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="33" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="34" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="36" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="37" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="38" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="41" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="42" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="44" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="45" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="46" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="47" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="48" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="50" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="51" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="52" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="53" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="54" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="55" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="56" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="57" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="58" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="59" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="60" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="61" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="62" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="63" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="64" name="Text" presence="bitfield" type="char60"/>
+    <field id="65" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="66" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="67" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="68" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="69" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="70" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="71" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="72" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="73" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="74" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="75" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="76" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="77" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="78" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="79" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="80" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="81" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="82" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="83" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="84" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="85" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="86" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="87" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="88" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="89" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="90" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="91" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="92" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="93" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="94" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="95" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="96" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="97" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="98" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="99" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="100" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="101" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="102" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="103" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="104" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="105" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="107" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="108" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="109" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="110" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="111" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="112" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="113" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="114" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="115" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="117" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="118" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="119" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="120" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="121" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="122" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="Username" presence="bitfield" type="char4"/>
+    <field id="124" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="125" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="126" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="128" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="129" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="130" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="131" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="132" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+  </sbe:message>
+  <sbe:message name="TradeCaptureReportAcknowledgement" id="16">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="tradeReportID" type="char20"/>
+	<field id="3" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="4" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="5" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="6" name="Side" presence="bitfield" type="char1"/>
+    <field id="7" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="8" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="9" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="10" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="11" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="12" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="13" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="14" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="15" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="16" name="Currency" presence="bitfield" type="char3"/>
+    <field id="17" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="18" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="19" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="20" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="21" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="22" name="Account" presence="bitfield" type="char16"/>
+    <field id="23" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="24" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="25" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="26" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="27" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="28" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="29" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="30" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="31" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="32" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="34" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="36" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="38" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="39" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="40" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="41" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="42" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="43" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="44" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="45" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="46" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="47" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="48" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="49" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="50" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="51" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="52" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="53" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="54" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="55" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="56" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="57" name="Text" presence="bitfield" type="char60"/>
+    <field id="58" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="59" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="60" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="61" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="62" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="63" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="64" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="65" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="66" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="67" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="68" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="69" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="70" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="71" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="72" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="73" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="74" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="75" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="76" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="77" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="78" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="79" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="80" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="81" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="82" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="83" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="84" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="85" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="86" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="87" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="88" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="89" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="90" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="91" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="92" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="93" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="94" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="95" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="96" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="97" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="98" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="99" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="100" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="101" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="102" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="103" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="104" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="105" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="106" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="107" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="108" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="109" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="110" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="111" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="112" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="113" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="114" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="115" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="Username" presence="bitfield" type="char4"/>
+    <field id="117" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="118" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="119" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="120" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="121" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="122" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="123" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="124" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="125" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="NoSides" type="uint8_t"/>
+    <field id="128" name="side1" type="Side_enum"/>
+    <field id="129" name="capacity1" type="Capacity_enum"/>
+    <field id="130" name="PartyID1" type="char4"/>
+    <field id="131" name="account1" type="char16"/>
+    <field id="132" name="partyRole1" type="PartyRole_enum"/>
+    <group dimensionType="SideGroup" id="133" name="sideGroup">
+        <field id="1" name ="Side" type ="Side_enum"/>
+        <field id="2" name ="Capacity" type ="Capacity_enum"/>
+        <field id="3" name ="PartyID" type ="char4"/>
+        <field id="4" name ="Account" type ="char16"/>
+        <field id="5" name ="PartyRole" type ="PartyRole_enum"/>
+    </group>
+  </sbe:message>
+  <sbe:message name="TradeCaptureReportReject" id="17">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="tradeReportID" type="char20"/>
+    <field id="3" name="tradeCaptureRejectReason" type="ReasonCodes_enum"/>
+    <field id="4" name="tradeCaptureRejectText" type="char60"/>
+	<field id="5" name="reservedInternal" presence="optional" ignore="true"  type="char1"/>
+    <field id="6" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="7" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="8" name="Side" presence="bitfield" type="char1"/>
+    <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="10" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="11" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="12" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="13" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="14" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="15" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="16" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="17" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="18" name="Currency" presence="bitfield" type="char3"/>
+    <field id="19" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="20" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="21" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="22" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="23" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="24" name="Account" presence="bitfield" type="char16"/>
+    <field id="25" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="26" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="27" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="28" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="29" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="30" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="31" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="32" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="34" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="38" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="41" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="42" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="44" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="45" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="48" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="52" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="53" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="54" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="55" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="56" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="57" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="58" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="59" name="Text" presence="bitfield" type="char60"/>
+    <field id="60" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="61" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="62" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="63" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="64" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="65" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="66" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="67" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="68" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="69" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="70" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="71" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="72" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="73" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="74" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="75" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="76" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="77" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="78" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="79" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="80" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="81" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="82" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="83" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="84" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="85" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="86" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="87" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="88" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="89" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="90" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="91" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="92" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="93" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="94" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="95" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="96" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="97" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="98" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="99" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="100" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="101" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="102" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="103" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="104" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="105" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="107" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="108" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="109" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="110" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="111" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="112" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="113" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="114" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="115" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="117" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="118" name="Username" presence="bitfield" type="char4"/>
+    <field id="119" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="120" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="121" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="122" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="124" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="125" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="126" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="128" name="NoSides" type="uint8_t"/>
+    <group dimensionType="SideGroup" id="129" name="sideGroup">
+        <field id="1" name ="Side" type ="Side_enum"/>
+        <field id="2" name ="Capacity" type ="Capacity_enum"/>
+        <field id="3" name ="PartyID" type ="char4"/>
+        <field id="4" name ="Account" type ="char16"/>
+        <field id="5" name ="PartyRole" type ="PartyRole_enum"/>
+    </group>
+  </sbe:message>
+  <sbe:message name="TradeCaptureConfirm" id="18">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="tradeReportID" type="char20"/>
+    <field id="3" name="tradeReportRefID" type="char20"/>
+    <field id="4" name="tradeID" type="char8"/>
+	<field id="5" name="lastShares" type="uint32_t"/>
+    <field id="6" name="lastPx" type="uint64_t"/>
+	<field id="7" name="contraBroker" type="char4"/>
+	<field id="8" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="9" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="10" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="11" name="Side" presence="bitfield" type="char1"/>
+    <field id="12" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="13" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="14" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="15" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="16" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="17" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="18" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="19" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="20" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="21" name="Currency" presence="bitfield" type="char3"/>
+    <field id="22" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="23" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="24" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="25" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="26" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="27" name="Account" presence="bitfield" type="char16"/>
+    <field id="28" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="29" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="30" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="31" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="32" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="33" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="34" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="35" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="36" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="37" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="38" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="41" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="42" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="43" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="44" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="45" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="46" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="47" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="48" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="49" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="50" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="51" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="52" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="53" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="54" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="55" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="56" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="57" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="58" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="59" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="60" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="61" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="62" name="Text" presence="bitfield" type="char60"/>
+    <field id="63" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="64" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="65" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="66" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="67" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="68" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="69" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="70" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="71" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="72" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="73" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="74" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="75" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="76" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="77" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="78" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="79" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="80" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="81" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="82" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="83" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="84" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="85" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="86" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="87" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="88" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="89" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="90" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="91" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="92" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="93" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="94" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="95" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="96" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="97" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="98" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="99" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="100" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="101" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="102" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="103" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="104" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="105" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="106" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="107" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="108" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="109" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="110" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="111" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="112" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="113" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="114" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="115" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="116" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="117" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="118" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="119" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="120" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="121" name="Username" presence="bitfield" type="char4"/>
+    <field id="122" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="124" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="125" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="126" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="128" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="129" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="130" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="131" name="NoSides" type="uint8_t"/>
+    <group dimensionType="SideGroup" id="132" name="sideGroup">
+        <field id="1" name ="Side" type ="Side_enum"/>
+        <field id="2" name ="Capacity" type ="Capacity_enum"/>
+        <field id="3" name ="PartyID" type ="char4"/>
+        <field id="4" name ="Account" type ="char16"/>
+        <field id="5" name ="PartyRole" type ="PartyRole_enum"/>
+    </group>
+  </sbe:message>
+  <sbe:message name="TradeCaptureReportDecline" id="19">
+    <!--Expanding sub message-->
+    <field id="1" name="transactionTime" type="uint64_t"/>
+    <field id="2" name="tradeReportID" type="char20"/>
+    <field id="3" name="tradeReportRefID" type="char20"/>
+    <field id="4" name="tradeID" type="char8"/>
+	<field id="5" name="lastShares" type="uint32_t"/>
+    <field id="6" name="lastPx" type="uint64_t"/>
+	<field id="7" name="contraBroker" type="char4"/>
+	<field id="8" name="tradeCaptureDeclineReason" type="ReasonCodes_enum"/>
+    <field id="9" name="tradeCaptureDeclineText" type="char60"/>
+	<field id="10" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="11" name="numberOfBitfields" type="uint8_t"/>
+    <group dimensionType="bitfield" id="12" name="bitfield">
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+    </group>
+    <field id="13" name="Side" presence="bitfield" type="char1"/>
+    <field id="14" name="PegDifference" presence="bitfield" type="uint64_t"/>
+    <field id="15" name="Price" presence="bitfield" type="uint64_t"/>
+    <field id="16" name="ExecInst" presence="bitfield" type="char1"/>
+    <field id="17" name="OrdType" presence="bitfield" type="char1"/>
+    <field id="18" name="TimeInForce" presence="bitfield" type="char1"/>
+    <field id="19" name="MinQty" presence="bitfield" type="uint32_t"/>
+    <field id="20" name="MaxRemovePct" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="21" name="Symbol" presence="bitfield" type="char8"/>
+    <field id="22" name="SymbolSfx" presence="bitfield" type="uint8_t"/>
+    <field id="23" name="Currency" presence="bitfield" type="char3"/>
+    <field id="24" name="IDSource" presence="bitfield" type="char1"/>
+    <field id="25" name="SecurityID" presence="bitfield" type="char16"/>
+    <field id="26" name="SecurityExchange" presence="bitfield" type="char4"/>
+    <field id="27" name="Capacity" presence="bitfield" type="char1"/>
+    <field id="28" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="29" name="Account" presence="bitfield" type="char16"/>
+    <field id="30" name="ClearingFirm" presence="bitfield" type="char4"/>
+    <field id="31" name="ClearingAccount" presence="bitfield" type="char4"/>
+    <field id="32" name="DisplayIndicator" presence="bitfield" type="char1"/>
+    <field id="33" name="MaxFloor" presence="bitfield" type="uint32_t"/>
+    <field id="34" name="DiscretionAmount" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="35" name="OrderQty" presence="bitfield" type="uint32_t"/>
+    <field id="36" name="PreventParticipantMatch" presence="bitfield" type="char3"/>
+    <field id="37" name="MaturityDate" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="38" name="StrikePrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="39" name="PutOrCall" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="40" name="OpenClose" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="41" name="ClOrdIdBatch" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="42" name="CorrectedSize" presence="bitfield" type="uint32_t"/>
+    <field id="43" name="PartyId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="44" name="AccessFee" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="45" name="OrigClOrdId" presence="bitfield" type="char20"/>
+    <field id="46" name="LeavesQty" presence="bitfield" type="uint32_t"/>
+    <field id="47" name="LastShares" presence="bitfield" type="uint32_t"/>
+    <field id="48" name="LastPrice" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="DisplayPrice" presence="bitfield" type="uint64_t"/>
+    <field id="50" name="WorkingPrice" presence="bitfield" type="uint64_t"/>
+    <field id="51" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="52" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
+    <field id="53" name="SecondaryOrderId" presence="bitfield" type="uint64_t"/>
+    <field id="54" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="55" name="ContraCapacity" presence="bitfield" type="char1"/>
+    <field id="56" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
+    <field id="57" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="58" name="BulkOrderIds" presence="bitfield" type="uint64_t"/>
+    <field id="59" name="BulkRejectReasons" presence="bitfield" type="char1"/>
+    <field id="60" name="PartyRole" presence="bitfield" type="char1"/>
+    <field id="61" name="SubLiquidityIndicator" presence="bitfield" type="char1"/>
+    <field id="62" name="TradeReportTypeReturn" presence="bitfield" type="uint16_t"/>
+    <field id="63" name="TradePublishIndReturn" presence="bitfield" type="uint8_t"/>
+    <field id="64" name="Text" presence="bitfield" type="char60"/>
+    <field id="65" name="Bid" presence="bitfield" type="uint64_t"/>
+    <field id="66" name="Offer" presence="bitfield" type="uint64_t"/>
+    <field id="67" name="LargeSize" presence="bitfield" type="uint64_t"/>
+    <field id="68" name="LastMkt" presence="bitfield" type="char4"/>
+    <field id="69" name="FeeCode" presence="bitfield" type="char2"/>
+    <field id="70" name="EchoText" presence="bitfield" type="char60"/>
+    <field id="71" name="StopPx" presence="bitfield" type="uint64_t"/>
+    <field id="72" name="RoutingInst" presence="bitfield" type="char4"/>
+    <field id="73" name="RoutStategy" presence="bitfield" type="char4"/>
+    <field id="74" name="RouteDeliveryMethod" presence="bitfield" type="char4"/>
+    <field id="75" name="ExDestination" presence="bitfield" type="char1"/>
+    <field id="76" name="TradeReportRefId" presence="bitfield" type="char20"/>
+    <field id="77" name="MarketingFeeCode" presence="bitfield" type="char2"/>
+    <field id="78" name="TargetPartyId" presence="bitfield" type="char4"/>
+    <field id="79" name="AuctionId" presence="bitfield" type="uint64_t"/>
+    <field id="80" name="OrderCategory" presence="bitfield" type="uint8_t"/>
+    <field id="81" name="LiquidityProvision" presence="bitfield" type="char1"/>
+    <field id="82" name="CmtaNumber" presence="bitfield" type="uint32_t"/>
+    <field id="83" name="CrossType" presence="bitfield" type="char1"/>
+    <field id="84" name="CrossPrioritization" presence="bitfield" type="char1"/>
+    <field id="85" name="CrossId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="86" name="AllocQty" presence="bitfield" type="uint32_t"/>
+    <field id="87" name="GiveUpFirmId" presence="bitfield" type="char4"/>
+    <field id="88" name="RoutingFirmId" presence="bitfield" type="char4"/>
+    <field id="89" name="WaiverType" presence="bitfield" type="char1"/>
+    <field id="90" name="CrossExclusionIndicator" presence="bitfield" type="char1"/>
+    <field id="91" name="PriceFormation" presence="bitfield" type="char1"/>
+    <field id="92" name="ClientQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="93" name="ClientId" presence="bitfield" type="uint32_t"/>
+    <field id="94" name="InvestorId" presence="bitfield" type="uint32_t"/>
+    <field id="95" name="ExecutorId" presence="bitfield" type="uint32_t"/>
+    <field id="96" name="OrderOrigination" presence="bitfield" type="char1"/>
+    <field id="97" name="AlgorithmicIndicator" presence="bitfield" type="char1"/>
+    <field id="98" name="DeferralReason" presence="bitfield" type="char1"/>
+    <field id="99" name="InvestorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="100" name="ExecutorQualifiedRole" presence="bitfield" type="uint8_t"/>
+    <field id="101" name="CtiCode" presence="bitfield" type="char2"/>
+    <field id="102" name="ManualOrderIndicator" presence="bitfield" type="uint8"/>
+    <field id="103" name="OperatorId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="104" name="TradeDate" presence="bitfield" type="uint64_t"/>
+    <field id="105" name="VariancePrice" presence="bitfield" type="uint8_t"/>
+    <field id="106" name="VarianceSize" presence="bitfield" type="uint64_t"/>
+    <field id="107" name="OrigSymbolId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="108" name="OrigTASPrice" presence="bitfield" type="uint8_t"/>
+    <field id="109" name="CumQty" presence="bitfield" type="uint8_t"/>
+    <field id="110" name="DayOrderQty" presence="bitfield" type="uint8_t"/>
+    <field id="111" name="DayCumQty" presence="bitfield" type="uint8_t"/>
+    <field id="112" name="AvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="113" name="DayAvgPx" presence="bitfield" type="uint64_t"/>
+    <field id="114" name="PendingStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="115" name="DrillThruProtection" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="116" name="MultilegReportingType" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="117" name="LegCFICode" presence="bitfield" type="char2"/>
+    <field id="118" name="LegMaturityDate" presence="bitfield" type="uint64_t"/>
+    <field id="119" name="LegStrikePrice" presence="bitfield" type="uint8_t"/>
+    <field id="120" name="QuoteRoomId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="121" name="SecondaryExecId" presence="bitfield" type="uint32_t"/>
+    <field id="122" name="UserRequestId" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="123" name="Username" presence="bitfield" type="char4"/>
+    <field id="124" name="UserStatus" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="125" name="TradeReportingIndicator" presence="bitfield" type="char1"/>
+    <field id="126" name="Reserved1 " presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="127" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="128" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="129" name="TradePublishInd" presence="bitfield" type="char1"/>
+    <field id="130" name="ReportTime" presence="bitfield" type="uint8_t"/>
+    <field id="131" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="132" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="133" name="NoSides" type="uint8_t"/>
+    <group dimensionType="SideGroup" id="134" name="sideGroup">
+        <field id="1" name ="Side" type ="Side_enum"/>
+        <field id="2" name ="Capacity" type ="Capacity_enum"/>
+        <field id="3" name ="PartyID" type ="char4"/>
+        <field id="4" name ="Account" type ="char16"/>
+        <field id="5" name ="PartyRole" type ="PartyRole_enum"/>
+    </group>
+  </sbe:message>
+  </sbe:messageSchema>

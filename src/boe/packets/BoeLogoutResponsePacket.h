@@ -24,7 +24,7 @@ PACKED(class BoeLogoutResponsePacket
         char                    mLogoutReasonStatus[1];
         char                    mLogoutReasonText[60];
         uint32_t                mLastReceivedSequenceNumber;
-        uint8_t	                mNumberOfReturnBitfields;
+        uint8_t	                mNumberOfUnits;
 
         BoeLogoutResponsePacket ()
         {
@@ -45,9 +45,9 @@ PACKED(class BoeLogoutResponsePacket
             return mLastReceivedSequenceNumber;
         }
 
-	    uint8_t getNumberOfReturnBitfields()
+	    uint8_t getNumberOfUnits()
 	    {
-	        return mNumberOfReturnBitfields;
+	        return mNumberOfUnits;
     	}
         
         bool setLogoutReason(char* buf)
@@ -66,9 +66,9 @@ PACKED(class BoeLogoutResponsePacket
             return true;
         }
 
-        bool setNumberOfReturnBitfields(uint8_t buf)
+        bool setNumberOfUnits(uint8_t buf)
         {
-            mNumberOfReturnBitfields = buf;
+            mNumberOfUnits = buf;
             return true;
         }
 

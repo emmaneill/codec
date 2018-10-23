@@ -26,7 +26,7 @@ PACKED(class BoeCancelRejectedPacket
         char                    mCancelRejectReason[1];
         char                    mCancelRejectText[60];
         char                    mReservedInternal[1];
-        uint8_t	                mNumberOfReturnBitfields;
+        uint8_t	                mNumberOfBitfields;
         
         uint64_t getTransactionTime()
         {
@@ -48,9 +48,9 @@ PACKED(class BoeCancelRejectedPacket
 	        return getString(mCancelRejectText, sizeof(mCancelRejectText));
     	}
         
-        uint8_t getNumberOfReturnBitfields()
+        uint8_t getNumberOfBitfields()
         {
-            return mNumberOfReturnBitfields;
+            return mNumberOfBitfields;
         } 
 
         bool setTransactionTime(uint64_t val)
@@ -74,9 +74,9 @@ PACKED(class BoeCancelRejectedPacket
             return setString(mCancelRejectText, (unsigned char*)buf, 60);
         }
         
-        bool setNumberOfReturnBitfields(uint8_t buf)
+        bool setNumberOfBitfields(uint8_t buf)
         {
-            mNumberOfReturnBitfields = buf;
+            mNumberOfBitfields = buf;
             return true;
         }
 });

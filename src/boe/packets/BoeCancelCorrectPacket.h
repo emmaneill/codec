@@ -33,7 +33,7 @@ PACKED(class BoeCancelCorrectPacket
         uint64_t                mCorrectedPrice;
         char     	            mOrigTime[8];
         char                    mReservedInternal[1];
-        uint8_t                 mNumberOfReturnBitfields;
+        uint8_t                 mNumberOfBitfields;
         
 
         BoeCancelCorrectPacket ()
@@ -100,9 +100,9 @@ PACKED(class BoeCancelCorrectPacket
             return getString(mOrigTime, sizeof(mOrigTime));
         }
 
-        uint16_t getNumberOfReturnBitfields ()
+        uint16_t getNumberOfBitfields ()
         {
-            return mNumberOfReturnBitfields;
+            return mNumberOfBitfields;
         }
 
         bool setTransactionTime(uint64_t val)
@@ -169,9 +169,9 @@ PACKED(class BoeCancelCorrectPacket
             return setString(mOrigTime, (unsigned char*)buf, 8);
         }
 
-        bool setNumberOfReturnBitfields(uint8_t val)
+        bool setNumberOfBitfields(uint8_t val)
         {
-            mNumberOfReturnBitfields = val;
+            mNumberOfBitfields = val;
             return true;
         }
 

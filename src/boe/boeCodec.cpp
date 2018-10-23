@@ -34,7 +34,7 @@ boeCodec::getTradeCancelCorrectV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf
     d.setInteger (LastPx, packet->getLastPx ());
     d.setInteger (CorrectedPrice, packet->getCorrectedPrice ());
     d.setString (OrigTime, packet->getOrigTime ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
     //Get optional fields
     used += offset;
@@ -52,7 +52,7 @@ boeCodec::getCancelRejectedV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, si
     d.setString (ClOrdID, packet->getClOrdID ());
     d.setString (CancelRejectReason, packet->getCancelRejectReason ());
     d.setString (CancelRejectText, packet->getCancelRejectText ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
     //Get optional fields
     used += offset;
@@ -69,7 +69,7 @@ boeCodec::getOrderCancelledV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, si
     d.setInteger (TransactTime, packet->getTransactionTime ());
     d.setString (ClOrdID, packet->getClOrdID ());
     d.setString (CancelReason, packet->getCancelReason ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
 
     if (mOrderCancelledBits != NULL)
@@ -346,7 +346,7 @@ boeCodec::getUserModifyRejectedV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf
     d.setString (ClOrdID, packet->getClOrdID ());
     d.setString (ModifyRejectReason, packet->getModifyRejectReason ());
     d.setString (ModifyRejectText, packet->getModifyRejectText ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
     //Get optional fields
     used += offset;
@@ -364,7 +364,7 @@ boeCodec::getOrderRestatementV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, 
     d.setString (ClOrdID, packet->getClOrdID ());
     d.setInteger (OrderID, packet->getOrderID ());
     d.setString (RestatementReason, packet->getRestatementReason ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
     //Get optional fields
     used += offset;
@@ -382,7 +382,7 @@ boeCodec::getOrderRejectedV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, siz
     d.setString (ClOrdID, packet->getClOrdID ());
     d.setString (OrderRejectReason, packet->getOrderRejectReason ());
     d.setString (OrderRejectText, packet->getOrderRejectText ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
     //Get optional fields
     used += offset;
@@ -399,7 +399,7 @@ boeCodec::getOrderModifiedV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, siz
     d.setInteger (TransactTime, packet->getTransactionTime ());
     d.setString (ClOrdID, packet->getClOrdID ());
     d.setInteger (OrderID, packet->getOrderID ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
 
     if (mOrderModifyBits != NULL)
@@ -631,7 +631,7 @@ boeCodec::getOrderAcknowledgementV2 (cdr& d, BoeHeaderPacket* hdr, const void* b
     d.setInteger (TransactTime, packet->getTransactionTime ());
     d.setString (ClOrdID, packet->getClOrdID ());
     d.setInteger (OrderID, packet->getOrderID ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
 
     //Get optional fields
@@ -986,7 +986,7 @@ boeCodec::getLoginResponseV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, siz
             ReturnBitfieldsGroup.setInteger (ParameterGroupLength, paramGroupLength);
             ReturnBitfieldsGroup.setString (ParameterGroupType, paramGroupType);
             ReturnBitfieldsGroup.setInteger (MessageType,  bitfieldGroup->getMessageType ());
-            int numBitfields = bitfieldGroup->getNumberOfReturnBitfields ();
+            int numBitfields = bitfieldGroup->getNumberOfBitfields ();
             cdrArray BitfieldArray;
             //Copy section of buffer with bitfields
             char* tmpbuf = new char[numBitfields];
@@ -1105,7 +1105,7 @@ boeCodec::getOrderExecutionV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, si
     d.setString (BaseLiquidityIndicator, packet->getBaseLiquidityIndicator ());
     d.setString (SubLiquidityIndicator, packet->getSubLiquidityIndicator ());
     d.setString (ContraBroker, packet->getContraBroker ());
-    int numBitfields = packet->getNumberOfReturnBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     offset += numBitfields;
 
     if (mOrderExecBits != NULL)
@@ -1400,7 +1400,7 @@ boeCodec::getLoginRequestV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, size
             ReturnBitfieldsGroup.setInteger (ParameterGroupLength, paramGroupLength);
             ReturnBitfieldsGroup.setString (ParameterGroupType, paramGroupType);
             ReturnBitfieldsGroup.setInteger (MessageType,  bitfieldGroup->getMessageType ());
-            int numBitfields = bitfieldGroup->getNumberOfReturnBitfields ();
+            int numBitfields = bitfieldGroup->getNumberOfBitfields ();
             cdrArray BitfieldArray;
             //Copy section of buffer with bitfields
             char* tmpbuf = new char[numBitfields];
@@ -1455,7 +1455,7 @@ boeCodec::getNewOrderV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, size_t& 
     d.setString (ClOrdID, packet->getClOrdID ());
     d.setString (Side, packet->getSide ());
     d.setInteger (OrderQty, packet->getOrderQty ());
-    int numBitfields = packet->getNumberOfNewOrderBitfields ();
+    int numBitfields = packet->getNumberOfBitfields ();
     char* tmpbuf = new char[numBitfields];
     memcpy ( (void*) tmpbuf, (void*) buf + offset, numBitfields);
     memset (tmpbuf + numBitfields, 0, (NEW_ORDER_BITFIELDS_SIZE - numBitfields));
@@ -1529,13 +1529,13 @@ boeCodec::getNewOrderV2 (cdr& d, BoeHeaderPacket* hdr, const void* buf, size_t& 
             offset += 3;
         }
 
-        if (mNewOrderBits->hasIdSource)
+        if (mNewOrderBits->hasIDSource)
         {
             d.setString (IDSource,  getStringField (newBuf, 1, offset));
             offset += 1;
         }
 
-        if (mNewOrderBits->hasSecurityId)
+        if (mNewOrderBits->hasSecurityID)
         {
             d.setString (SecurityID,  getStringField (newBuf, 16, offset));
             offset += 16;

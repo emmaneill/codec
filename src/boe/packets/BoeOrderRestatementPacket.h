@@ -26,7 +26,7 @@ PACKED(class BoeOrderRestatementPacket
         uint64_t                mOrderID;
         char                    mRestatementReason[1];
         char                    mReservedInternal[1];
-        uint8_t	                mNumberOfReturnBitfields;
+        uint8_t	                mNumberOfBitfields;
         
         uint64_t getTransactionTime()
         {
@@ -48,9 +48,9 @@ PACKED(class BoeOrderRestatementPacket
 	        return getString(mRestatementReason, sizeof(mRestatementReason));
     	}
         
-        uint8_t getNumberOfReturnBitfields()
+        uint8_t getNumberOfBitfields()
         {
-            return mNumberOfReturnBitfields;
+            return mNumberOfBitfields;
         } 
 
         bool setTransactionTime(uint64_t val)
@@ -75,9 +75,9 @@ PACKED(class BoeOrderRestatementPacket
             return setString(mRestatementReason, (unsigned char*)buf, 1);
         }
         
-        bool setNumberOfReturnBitfields(uint8_t buf)
+        bool setNumberOfBitfields(uint8_t buf)
         {
-            mNumberOfReturnBitfields = buf;
+            mNumberOfBitfields = buf;
             return true;
         }
 });

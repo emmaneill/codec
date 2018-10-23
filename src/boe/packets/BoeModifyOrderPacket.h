@@ -3,8 +3,8 @@
  * 
  * Generated 25/07/2018
  */
-#ifndef BOE_ORDER_CANCELLED_PACKET_H
-#define BOE_ORDER_CANCELLED_PACKET_H
+#ifndef BOE_MODIFY_ORDER_PACKET_H
+#define BOE_MODIFY_ORDER_PACKET_H
 
 #include <string>
 #include <vector>
@@ -18,51 +18,38 @@
 namespace neueda
 {
 
-PACKED(class BoeOrderCancelledPacket
+PACKED(class BoeModifyOrderPacket
 {
     public:
-		uint64_t				mTransactionTime;
         char                    mClOrdID[20];
-        char                    mCancelReason[1];
-        char                    mReservedInternal[1];
+        char                    mOrigClOrdID[20];
         uint8_t	                mNumberOfBitfields;
         
-        uint64_t getTransactionTime()
-        {
-            return mTransactionTime;
-        }
-
 	    string getClOrdID()
 	    {
 	        return getString(mClOrdID, sizeof(mClOrdID));
     	}
-        
-        string getCancelReason()
+
+	    string getOrigClOrdID()
 	    {
-	        return getString(mCancelReason, sizeof(mCancelReason));
+	        return getString(mOrigClOrdID, sizeof(mOrigClOrdID));
     	}
-        
+		
         uint8_t getNumberOfBitfields()
         {
             return mNumberOfBitfields;
         } 
 
-        bool setTransactionTime(uint64_t val)
-        {
-            mTransactionTime = val;
-            return true;
-        }
-
         bool setClOrdID(char* buf)
         {
             return setString(mClOrdID, (unsigned char*)buf, 20);
         }
-		        
-        bool setCancelReason(char* buf)
+		
+        bool setOrigClOrdID(char* buf)
         {
-            return setString(mCancelReason, (unsigned char*)buf, 1);
+            return setString(mOrigClOrdID, (unsigned char*)buf, 20);
         }
-        
+
         bool setNumberOfBitfields(uint8_t buf)
         {
             mNumberOfBitfields = buf;

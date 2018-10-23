@@ -20,8 +20,8 @@
             unsigned int hasSymbol : 1;
             unsigned int hasSymbolSfx : 1;
             unsigned int hasCurrency : 1;
-            unsigned int hasIdSource : 1;
-            unsigned int hasSecurityId : 1;
+            unsigned int hasIDSource : 1;
+            unsigned int hasSecurityID : 1;
             unsigned int hasSecurityExchange : 1;
             unsigned int hasCapacity : 1;
             unsigned int hasRoutingInst : 1;

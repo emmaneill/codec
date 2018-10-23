@@ -2171,6 +2171,10 @@
   <field name= "DisplayPrice" number="4244" venue="Boe"/>
   <field name "WorkingPrice" number ="4245" venue="Boe"/>
   <field name "IDSource" number ="4246" venue="Boe"/>
+  <field name="CancelOrigOnReject" number="4247" venue="Boe" />
+  <field name="TransactionCategory" number="4248" venue="Boe" />
+  <field name="TradePriceCondition" number="4249" venue="Boe" />
+  <field name="LargeSize" number="4250" venue="Boe" />
 
     FieldMapCreated = true;
 

@@ -26,7 +26,7 @@
             unsigned int hasTradeID : 1;
             unsigned int hasVenueType : 1;
             //Third byte
-            unsigned int hasTradingSessionSubId : 1;
+            unsigned int hasTradingSessionSubID : 1;
             unsigned int hasMatchType : 1;
             unsigned int hasTrdSubType : 1;
             unsigned int hasSecondaryTrdType : 1;

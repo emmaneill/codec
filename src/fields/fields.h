@@ -2187,6 +2187,10 @@ using namespace std;
 #define DisplayPrice 4244
 #define WorkingPrice 4245
 #define IDSource 4246
+#define CancelOrigOnReject 4247
+#define TransactionCategory 4248
+#define TradePriceCondition 4249
+#define LargeSize 4250
 namespace neueda
 {
 

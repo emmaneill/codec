@@ -2187,6 +2187,10 @@ FieldUtils::createMap ()
     m[4244] = "DisplayPrice";
     m[4245] = "WorkingPrice";
     m[4246] = "IDSource";
+    m[4247] = "CancelOrigOnReject";
+    m[4248] = "TransactionCategory";
+    m[4249] = "TradePriceCondition";
+    m[4250] = "LargeSize";
 
     FieldMapCreated = true;
     return m;

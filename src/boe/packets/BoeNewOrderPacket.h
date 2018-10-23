@@ -25,7 +25,7 @@ PACKED(class BoeNewOrderPacket
         char                    mClOrdID[20];
         char                    mSide[1];
         uint32_t                mOrderQty;
-        uint8_t                 mNumberOfNewOrderBitfields;
+        uint8_t                 mNumberOfBitfields;
 
 
         BoeNewOrderPacket ()
@@ -47,9 +47,9 @@ PACKED(class BoeNewOrderPacket
             return mOrderQty;
         }
 
-        uint8_t  getNumberOfNewOrderBitfields()
+        uint8_t  getNumberOfBitfields()
         {
-            return mNumberOfNewOrderBitfields;
+            return mNumberOfBitfields;
         }
 
         bool setClOrdID(char* val)
@@ -68,9 +68,9 @@ PACKED(class BoeNewOrderPacket
             return true;
         }
 
-        bool setNumberOfNewOrderBitfields(uint8_t val)
+        bool setNumberOfBitfields(uint8_t val)
         {
-            mNumberOfNewOrderBitfields = val;
+            mNumberOfBitfields = val;
             return true;
         }
 });

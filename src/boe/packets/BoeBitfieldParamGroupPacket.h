@@ -22,7 +22,7 @@ PACKED(class BoeBitfieldParamGroupPacket
 {
     public:
         uint8_t                         mMessageType;
-        uint8_t                         mNumberOfReturnBitfields;
+        uint8_t                         mNumberOfBitfields;
 
 
         BoeBitfieldParamGroupPacket ()
@@ -34,14 +34,14 @@ PACKED(class BoeBitfieldParamGroupPacket
             return mMessageType;
         }
 
-        uint8_t getNumberOfReturnBitfields()
+        uint8_t getNumberOfBitfields()
         {
-            return mNumberOfReturnBitfields;
+            return mNumberOfBitfields;
         }
 
-        bool setNumberOfReturnBitfields(uint8_t val)
+        bool setNumberOfBitfields(uint8_t val)
         {
-            mNumberOfReturnBitfields = val;
+            mNumberOfBitfields = val;
             return true;
         }
 

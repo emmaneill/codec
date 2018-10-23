@@ -22,7 +22,7 @@ PACKED(class BoeLoginRequestPacket
 {
     public:
 
-        char                    mSessionSubID[4];
+        char                    mTradingSessionSubID[4];
         char                    mUsername[4];
         char                    mPassword[10];
         uint8_t                 mNumberOfParamGroups;
@@ -32,9 +32,9 @@ PACKED(class BoeLoginRequestPacket
         {
         }
 
-        string  getSessionSubID()
+        string  getTradingSessionSubID()
         {
-            return getString(mSessionSubID, sizeof(mSessionSubID));
+            return getString(mTradingSessionSubID, sizeof(mTradingSessionSubID));
         }
 
         string  getUsername()
@@ -52,9 +52,9 @@ PACKED(class BoeLoginRequestPacket
             return mNumberOfParamGroups;
         }
 
-        bool setSessionSubID(char* val)
+        bool setTradingSessionSubID(char* val)
         {
-            return setString(mSessionSubID, (unsigned char*)val, sizeof(mSessionSubID));
+            return setString(mTradingSessionSubID, (unsigned char*)val, sizeof(mTradingSessionSubID));
         }
 
         bool setUsername(char* val)
