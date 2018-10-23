@@ -21,12 +21,12 @@ namespace neueda
 PACKED(class BoeCancelOrderPacket
 {
     public:
-        char                    mClOrdID[20];
+        char                    mOrigClOrdID[20];
         uint8_t	                mNumberOfBitfields;
         
-	    string getClOrdID()
+	    string getOrigClOrdID()
 	    {
-	        return getString(mClOrdID, sizeof(mClOrdID));
+	        return getString(mOrigClOrdID, sizeof(mOrigClOrdID));
     	}
 		
         uint8_t getNumberOfBitfields()
@@ -34,9 +34,9 @@ PACKED(class BoeCancelOrderPacket
             return mNumberOfBitfields;
         } 
 
-        bool setClOrdID(char* buf)
+        bool setOrigClOrdID(char* buf)
         {
-            return setString(mClOrdID, (unsigned char*)buf, 20);
+            return setString(mOrigClOrdID, (unsigned char*)buf, 20);
         }
 		
         bool setNumberOfBitfields(uint8_t buf)
@@ -49,4 +49,4 @@ PACKED(class BoeCancelOrderPacket
 
 } // namespace neueda
 
-#endif // BOE_Logout_RESPONSE_PACKET_H
+#endif // BOE_CANCEL_ORDER_PACKET_H

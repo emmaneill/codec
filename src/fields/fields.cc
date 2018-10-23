@@ -2191,6 +2191,14 @@ FieldUtils::createMap ()
     m[4248] = "TransactionCategory";
     m[4249] = "TradePriceCondition";
     m[4250] = "LargeSize";
+    m[4251] = "ExecutionMethod";
+    m[4252] = "TradeHandlingInstruction";
+    m[4253] = "Tolerance";
+    m[4254] = "SettlementPrice";
+    m[4255] = "SettlementDate";
+    m[4256] = "PriceFormation";
+    m[4257] = "SettlementCurrency";
+    m[4258] = "SettlementLocation";
 
     FieldMapCreated = true;
     return m;

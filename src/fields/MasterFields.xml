@@ -2173,8 +2173,16 @@
   <field name "IDSource" number ="4246" venue="Boe"/>
   <field name="CancelOrigOnReject" number="4247" venue="Boe" />
   <field name="TransactionCategory" number="4248" venue="Boe" />
-  <field name="TradePriceCondition" number="4249" venue="Boe" />
-  <field name="LargeSize" number="4250" venue="Boe" />
+  <field name= "TradePriceCondition" number ="4249" venue="Boe"/>
+  <field name= "LargeSize" number ="4250" venue="Boe"/>
+  <field name= "ExecutionMethod" number ="4251" venue="Boe"/>
+  <field name= "TradeHandlingInstruction" number ="4252" venue="Boe"/>
+  <field name= "Tolerance" number ="4253" venue="Boe"/>
+  <field name= "SettlementPrice" number ="4254" venue="Boe"/>
+  <field name= "SettlementDate" number ="4255" venue="Boe"/>
+  <field name= "PriceFormation" number ="4256" venue="Boe"/>
+  <field name= "SettlementCurrency" number ="4257" venue="Boe"/>
+  <field name= "SettlementLocation" number ="4258" venue="Boe"/>
 
     FieldMapCreated = true;
 

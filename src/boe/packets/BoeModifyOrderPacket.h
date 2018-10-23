@@ -60,4 +60,4 @@ PACKED(class BoeModifyOrderPacket
 
 } // namespace neueda
 
-#endif // BOE_Logout_RESPONSE_PACKET_H
+#endif // BOE_MODIFY_ORDER_PACKET_H
