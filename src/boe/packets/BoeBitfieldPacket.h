@@ -21,22 +21,21 @@ namespace neueda
 PACKED(class BoeBitfieldPacket
 {
     public:
-        char         mBitfield;
+        char         mBitfield[1];
 
 
         BoeBitfieldPacket ()
         {
         }
 
-        char getBitfield()
+        string getBitfield()
         {
-            return mBitfield;
+            return getString(mBitfield, sizeof(mBitfield));
         }
 
-        bool setBitfield(char val)
+        bool setBitfield(std::string val)
         {
-            mBitfield = val;
-            return true;
+            return setString(mBitfield, val, 1);
         }
 
 });

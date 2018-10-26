@@ -3,8 +3,8 @@
  * 
  * Generated 25/07/2018
  */
-#ifndef BOE_ORDER_RESTATEMENT_PACKET_H
-#define BOE_ORDER_RESTATEMENT_PACKET_H
+#ifndef BOE_ORDER_RESTATED_PACKET_H
+#define BOE_ORDER_RESTATED_PACKET_H
 
 #include <string>
 #include <vector>
@@ -18,19 +18,19 @@
 namespace neueda
 {
 
-PACKED(class BoeOrderRestatementPacket
+PACKED(class BoeOrderRestatedPacket
 {
     public:
-		uint64_t			    mTransactionTime;
+		uint64_t			    mTransactTime;
         char                    mClOrdID[20];
         uint64_t                mOrderID;
         char                    mRestatementReason[1];
         char                    mReservedInternal[1];
         uint8_t	                mNumberOfBitfields;
         
-        uint64_t getTransactionTime()
+        uint64_t getTransactTime()
         {
-            return  mTransactionTime;
+            return  mTransactTime;
         }
 
 	    string getClOrdID()
@@ -53,9 +53,9 @@ PACKED(class BoeOrderRestatementPacket
             return mNumberOfBitfields;
         } 
 
-        bool setTransactionTime(uint64_t val)
+        bool setTransactTime(uint64_t val)
         {
-            mTransactionTime = val;
+            mTransactTime = val;
             return true;
         }
 

@@ -21,15 +21,15 @@ namespace neueda
 PACKED(class BoeOrderCancelledPacket
 {
     public:
-		uint64_t				mTransactionTime;
+		uint64_t				mTransactTime;
         char                    mClOrdID[20];
         char                    mCancelReason[1];
         char                    mReservedInternal[1];
         uint8_t	                mNumberOfBitfields;
         
-        uint64_t getTransactionTime()
+        uint64_t getTransactTime()
         {
-            return mTransactionTime;
+            return mTransactTime;
         }
 
 	    string getClOrdID()
@@ -47,9 +47,9 @@ PACKED(class BoeOrderCancelledPacket
             return mNumberOfBitfields;
         } 
 
-        bool setTransactionTime(uint64_t val)
+        bool setTransactTime(uint64_t val)
         {
-            mTransactionTime = val;
+            mTransactTime = val;
             return true;
         }
 

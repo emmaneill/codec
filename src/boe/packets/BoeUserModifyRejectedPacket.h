@@ -3,8 +3,8 @@
  * 
  * Generated 25/07/2018
  */
-#ifndef BOE_MODIFY_REJECTED_PACKET_H
-#define BOE_MODIFY_REJECTED_PACKET_H
+#ifndef BOE_USER_MODIFY_REJECTED_PACKET_H
+#define BOE_USER_MODIFY_REJECTED_PACKET_H
 
 #include <string>
 #include <vector>
@@ -18,19 +18,19 @@
 namespace neueda
 {
 
-PACKED(class BoeModifyRejectedPacket
+PACKED(class BoeUserModifyRejectedPacket
 {
     public:
-		uint64_t				mTransactionTime;
+		uint64_t				mTransactTime;
         char                    mClOrdID[20];
         char                    mModifyRejectReason[1];
         char                    mModifyRejectText[60];
         char                    mReservedInternal[1];
         uint8_t	                mNumberOfBitfields;
         
-        uint64_t getTransactionTime()
+        uint64_t getTransactTime()
         {
-            return mTransactionTime;
+            return mTransactTime;
         }
 
 	    string getClOrdID()
@@ -53,9 +53,9 @@ PACKED(class BoeModifyRejectedPacket
             return mNumberOfBitfields;
         } 
 
-        bool setTransactionTime(uint64_t val)
+        bool setTransactTime(uint64_t val)
         {
-            mTransactionTime = val;
+            mTransactTime = val;
             return true;
         }
 

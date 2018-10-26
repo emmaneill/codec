@@ -2183,6 +2183,29 @@
   <field name= "PriceFormation" number ="4256" venue="Boe"/>
   <field name= "SettlementCurrency" number ="4257" venue="Boe"/>
   <field name= "SettlementLocation" number ="4258" venue="Boe"/>
+  <field name= "DeferralReason" number ="4259" venue="Boe"/>
+  <field name= "CorrectedSize" number ="4260" venue="Boe"/>
+  <field name= "AllocQty" number="4261" venue="Boe"/>
+  <field name= "AttributedQuote" number="4262" venue="Boe"/>
+  <field name= "AuctionID" number="4263" venue="Boe"/>
+  <field name= "BulkOrderIDs" number="4264" venue="Boe"/>
+  <field name= "BulkRejectReasons" number="4265" venue="Boe"/>
+  <field name= "CmtaNumber" number="4266" venue="Boe"/>
+  <field name= "ContraCapacity" number="4267" venue="Boe"/>
+  <field name= "CrossExclusionIndicator" number="4268" venue="Boe"/>
+  <field name= "CtiCode" number="4269" venue="Boe"/>
+  <field name= "EchoText" number="4270" venue="Boe"/>
+  <field name= "MarketingFeeCode" number="4271" venue="Boe"/>
+  <field name= "ReportTime" number="4272" venue="Boe"/>
+  <field name= "RoutingFirmID" number="4273" venue="Boe"/>
+  <field name= "RoutStrategy" number="4274" venue="Boe"/>
+  <field name= "TradePublishIndReturn" number="4275" venue="Boe"/>
+  <field name= "TradeReportingIndicator" number="4276" venue="Boe"/>
+  <field name= "TradeReportTypeReturn" number="4278" venue="Boe"/>
+  <field name= "VariancePrice" number="4279" venue="Boe"/>
+  <field name= "OrigTASPrice" number="4280" venue="Boe"/>
+  <field name= "ExtExecInst" number="4281" venue="Boe"/>
+  <field name= "SideGroupSection" number="4282" venue="Boe"/>
 
     FieldMapCreated = true;
 

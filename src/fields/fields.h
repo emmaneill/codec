@@ -2199,7 +2199,30 @@ using namespace std;
 #define PriceFormation 4256
 #define SettlementCurrency 4257
 #define SettlementLocation 4258
-
+#define DeferralReason 4259
+#define CorrectedSize 4260
+#define AllocQty 4261 
+#define AttributedQuote 4262 
+#define AuctionID 4263 
+#define BulkOrderIDs 4264 
+#define BulkRejectReasons 4265 
+#define CmtaNumber 4266 
+#define ContraCapacity 4267
+#define CrossExclusionIndicator 4268
+#define CtiCode 4269
+#define EchoText 4270
+#define MarketingFeeCode 4271
+#define ReportTime 4272
+#define RoutingFirmID 4273
+#define RoutStrategy 4274
+#define TradePublishIndReturn 4275
+#define TradeReportingIndicator 4276
+#define TradeReportTypeReturn 4277
+#define VariancePrice 4278
+#define VarianceSize 4279
+#define OrigTASPrice 4280
+#define ExtExecInst 4281
+#define SideGroupSection 4282
 namespace neueda
 {
 

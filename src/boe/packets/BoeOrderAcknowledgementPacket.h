@@ -21,7 +21,7 @@ namespace neueda
 PACKED(class BoeOrderAcknowledgementPacket
 {
     public:
-		uint64_t			    mTransactionTime;
+		uint64_t			    mTransactTime;
         char                    mClOrdID[20];
         uint64_t                mOrderID;
         char                    mReservedInternal[1];
@@ -32,9 +32,9 @@ PACKED(class BoeOrderAcknowledgementPacket
         {
         }
 
-        uint64_t getTransactionTime()
+        uint64_t getTransactTime()
         {
-            return mTransactionTime;
+            return mTransactTime;
         }
 
 	    string getClOrdID()
@@ -52,9 +52,9 @@ PACKED(class BoeOrderAcknowledgementPacket
             return mNumberOfBitfields;
         } 
 
-        bool setTransactionTime(uint64_t val)
+        bool setTransactTime(uint64_t val)
         {
-            mTransactionTime = val;
+            mTransactTime = val;
             return true;
         }
 

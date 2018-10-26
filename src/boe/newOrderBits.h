@@ -59,19 +59,19 @@
             unsigned int hasRouteDeliveryMethod : 1;
             unsigned int hasExDestination : 1;
             unsigned int hasEchoText : 1;
-            unsigned int hasAuctionId : 1;
+            unsigned int hasAuctionID : 1;
             unsigned int hasRoutingFirmID : 1;
             //Seventh byte
             unsigned int hasAlgorithmicIndicator : 1;
-            unsigned int hasCustomGroupId : 1;
+            unsigned int hasCustomGroupID : 1;
             unsigned int hasClientQualifiedRole : 1;
             unsigned int hasInvestorQualifiedRole : 1;
             unsigned int hasExecutorQualifiedRole : 1;
             unsigned int hasCtiCode : 1;
             unsigned int hasManualOrderIndicator : 1;
-            unsigned int hasOperatorId : 1;
+            unsigned int hasOperatorID : 1;
             //Eighth byte
-            unsigned int hasQuoteRoomId : 1;
+            unsigned int hasQuoteRoomID : 1;
             unsigned int hasSIIndicator : 1;
             unsigned int hasReserved2 : 1;
             unsigned int hasReserved3 : 1;

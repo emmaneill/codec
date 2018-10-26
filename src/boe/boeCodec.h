@@ -4,6 +4,7 @@
 #ifndef BOE_CODEC_H
 #define BOE_CODEC_H
 #include <stdint.h>
+#include <fstream>
 #include "cdr.h"
 #include "codec.h"
 #include "codecHelpers.h"
@@ -29,20 +30,14 @@
 #define ORDER_CANCEL_REJECTED 0x2B
 #define ORDER_EXECUTION 0x2C
 #define TRADE_CANCEL_CORRECTED 0x2D
-#define TRADE_CAPTURE_REPORT 0x3C
 
 #define LOGIN_REQUEST 0x37
 #define CLIENT_HEARTBEAT 0x03
 #define NEW_ORDER 0x38
-#define CANCEL_ORDER 0x39
-#define MODIFY_ORDER 0x3A
 
 #define MIN_MSG_SIZE 10
 #define ORDER_MSG_BITFIELDS_SIZE 15
 #define NEW_ORDER_BITFIELDS_SIZE 8
-#define CANCEL_ORDER_BITFIELDS_SIZE 2
-#define MODIFY_ORDER_BITFIELDS_SIZE 2
-#define TRADE_CAPTURE_BITFIELDS_SIZE 5
 
 namespace neueda
 {
@@ -53,8 +48,6 @@ class boeCodec: public codec
         boeCodec()
         {
             mMsgTypes.insert(std::make_pair("37", "Login Request"));
-            mMsgTypes.insert(std::make_pair("38", "New Order"));
-            mMsgTypes.insert(std::make_pair("39", "Cancel Order"));
             mMsgTypes.insert(std::make_pair("24", "Login Response"));
             mMsgTypes.insert(std::make_pair("25", "Order Acknowledgment"));
             mMsgTypes.insert(std::make_pair("26", "Order Rejected"));
@@ -67,8 +60,6 @@ class boeCodec: public codec
             mMsgTypes.insert(std::make_pair("2A", "Order Cancelled"));
             mMsgTypes.insert(std::make_pair("2B", "Cancel Rejected"));
             mMsgTypes.insert(std::make_pair("2D", "Cancel Correct"));
-            mMsgTypes.insert(std::make_pair("3A", "Modify Order"));
-            mMsgTypes.insert(std::make_pair("3C", "Trade Capture Report"));
         }
 
         codecState decode (cdr& d,
@@ -99,6 +90,7 @@ class boeCodec: public codec
         codecState getLogoutResponseV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
 
         codecState getOrderExecutionV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
+        codecState putOrderExecutionV2 (const cdr &d, void* buf,  size_t len, size_t& used);
 
         codecState getOrderAcknowledgementV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
 
@@ -119,25 +111,26 @@ class boeCodec: public codec
         codecState getLoginRequestV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
 
         codecState getNewOrderV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
-        
-        codecState getCancelOrderV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
-        
-        codecState getModifyOrderV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
-        
-        codecState getTradeCaptureReportV2 (cdr &d, BoeHeaderPacket* hdr, const void* buf, size_t& used);
 
         codecState getClientHeartbeat (cdr& d, BoeHeaderPacket* hdr, size_t& used);
 
-        OrderMsgBits* mOrderExecBits;
-        OrderMsgBits* mOrderModifyBits;
+        OrderMsgBits* mOrderExecutionBits;
+        OrderMsgBits* mOrderModifiedBits;
+        OrderMsgBits* mOrderRejectedBits;
         OrderMsgBits* mOrderRestatedBits;
-        OrderMsgBits* mOrderAckBits;
+        OrderMsgBits* mOrderAcknowledgementBits;
         OrderMsgBits* mOrderCancelledBits;
+        OrderMsgBits* mUserModifyRejectedBits;
+        OrderMsgBits* mCancelRejectedBits;
         NewOrderBits* mNewOrderBits;
         CancelOrderBits* mCancelOrderBits;
         ModifyOrderBits* mModifyOrderBits;
-        TradeCaptureBits* mTradeCaptureBits;
-
+        TradeCaptureBits* mTradeCancelCorrectBits;
+        TradeCaptureBits* mTradeCaptureReportBits;
+        TradeCaptureBits* mTradeCaptureReportRejectBits;
+        TradeCaptureBits* mTradeCaptureConfirmBits;
+        TradeCaptureBits* mTradeCaptureReportDecline;
+        TradeCaptureBits* mTradeCaptureReportAcknowledgementBits;
 };
 
 } // namespace neueda
