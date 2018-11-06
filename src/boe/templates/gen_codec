@@ -174,10 +174,13 @@ def get_default_value(field, indent=0, field_type=None):
         t = field_type
     else:
         t = field['type']
-
+    if t is None:
+        t = field['primitiveType']
     n = field['name']
 
-    if 'enum' in t or 'set' in t:
+    if t is None:
+        return "None type for default value"
+    elif 'enum' in t or 'set' in t:
         return Template("${indent}m${name} = 0;").\
                 substitute(**{'indent': indent * ' ',
                               'name': n})
@@ -241,8 +244,9 @@ def packet_get_set(field, indent=4, field_type=None):
 
     if not field_type:
         field_type = get_field_type(field);
-
-    if 'int' in field_type:
+    if field_type is None:
+        return "field type is none"
+    elif 'int' in field_type:
         return packet_get_set_int(field, indent)
     elif 'string' in field_type:
         return packet_get_set_string(field, indent)
@@ -262,7 +266,11 @@ def get_comp_field_type(field):
 def get_field_initialise(field, indent=4):
     t = get_field_type(field)
     if t == 'string':
-        t = types[field['type']]
+        t = field['type']
+        if t is None: 
+            t = types[field['primitiveType']]
+        else:
+            t = types[field['type']]
         l = t['length']
         return Template("${indent}char m${field_name}[${len}];").\
                 substitute(**{'indent': indent * ' ',
@@ -278,6 +286,8 @@ def get_field_initialise(field, indent=4):
 def get_field_type(field):
     name = field['name']
     t = field['type']
+    if t is None:
+        t = field['primitiveType']
     if t == 'unsigned_char':
         t = 'uint8_t'
     elif t == 'enum' :
@@ -292,6 +302,7 @@ def get_field_type(field):
             return "//TODO UNHANDLED SET TYPE\n"
     elif re.search('char\d+', t):
         t = 'string'
+    
 
     return t
 
@@ -667,7 +678,7 @@ def generate_codec(context, output_directory, template_dir):
 def generate_constants(context, output_directory, template_dir):
     template = os.path.join(template_dir, 'venue_constants_h.t')
 
-#    target = os.path.join(output_directory, 'boeConstants.h')
+    target = os.path.join(output_directory, 'boeConstants.h')
 
     transform(context, template, target)
 

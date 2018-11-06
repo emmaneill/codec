@@ -26,7 +26,7 @@
     <type name="char18" length="18" primitiveType="char"/>
     <type name="char20" length="20" primitiveType="char"/>
     <type name="char25" length="25" primitiveType="char"/>
-    <type name="char27" length="27" primitiveType="char"/>
+    <type name="char27" length="27" primitiveType="char"/> 
     <type name="char30" length="30" primitiveType="char"/>
     <type name="char32" length="32" primitiveType="char"/>
     <type name="char52" length="52" primitiveType="char"/>
@@ -45,7 +45,7 @@
     <composite name="messageHeader" description="Message identifiers and length of message root">
       <type name="startOfMessage" primitiveType="char2"/>
       <type name="messageLength" primitiveType="uint16"/>
-      <type name="messageType" primitiveType="char"/>
+      <type name="messageType" primitiveType="char1"/>
       <type name="matchingUnit" primitiveType="uint8_t"/>
       <type name="sequenceNumber" primitiveType="uint32"/>
     </composite>
