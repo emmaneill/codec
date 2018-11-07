@@ -43,15 +43,15 @@ codecState
 codecState
 @{venue}Codec::put@{msg['name']} (const cdr& d, void* buf, size_t len, size_t& used)
 {
-    @{venue}@{msg['name']}Packet base;
+    @{Venue}@{msg['name']}Packet base;
     memcpy (buf, &base, sizeof(base));
 
     @if len(msg_data[msg['name']]) > 0:
-    @{venue}@{msg['name']}Packet* packet = (@{venue}@{msg['name']}Packet*)((char*)buf);
+    @{Venue}@{msg['name']}Packet* packet = (@{Venue}@{msg['name']}Packet*)((char*)buf);
     @end
-    size_t offset = sizeof (@{venue}HeaderPacket) + 2;
+    size_t offset = sizeof (@{Venue}HeaderPacket);
 
-    if (len < sizeof (@{venue}@{msg['name']}Packet))
+    if (len < sizeof (@{Venue}@{msg['name']}Packet))
         return GW_CODEC_SHORT;
 
     @for field in msg_data[msg['name']]:
@@ -67,50 +67,45 @@ codecState
 codecState
 @{venue}Codec::decode (cdr& d, const void* buf, size_t len, size_t& used)
 {
+
     clearLastError ();
     used = 0;
     d.clear ();
 
-    if (len < sizeof(@{venue}HeaderPacket))
+    if (len < sizeof(@{Venue}HeaderPacket))
         return GW_CODEC_SHORT;
 
-    uint16_t frameLength = *((uint16_t*)buf);
-    if (len < frameLength)
+    @{Venue}HeaderPacket* hdr = (@{Venue}HeaderPacket*)((unsigned char*)buf);
+
+    if (len < sizeof hdr)
         return GW_CODEC_SHORT;
 
-    @{venue}HeaderPacket* hdr =
-        (@{venue}HeaderPacket*)
-            (((unsigned char*)buf) + sizeof(uint16_t));
-
-    used = frameLength;
-
-    std::ostringstream oss;
-    oss << hdr->mMessageType;
-    
-    d.setInteger (FrameLength, frameLength);
-    d.setString (MessageType, "%s", oss.str ().c_str ());
-    d.setInteger (MessageType, hdr->mMessageType);
-    d.setInteger (SchemaId, hdr->mSchemaId);
-    d.setInteger (Version, hdr->mVersion);
+    d.setInteger (MessageType,  hdr->getMessageType ());
+    d.setInteger (MessageLength, hdr->getMessageLength ());
+    d.setInteger (MatchingUnit, hdr->getMatchingUnit ());
+    d.setInteger (SequenceNumber, hdr->getSequenceNumber ());
 
     switch (hdr->mMessageType) {
 @for message in messages:
         case @{message['id']}:
-            return get@{message['name']} (d, buf);
+            return get@{message['name']} (d, buf, used);
 @end
         default:
             setLastError ("unknown message type");
             return GW_CODEC_ERROR;
     }
-
     return GW_CODEC_ERROR;
-}
 
 codecState
 @{venue}Codec::encode (const cdr& d, void* buf, size_t len, size_t& used)
 {
     clearLastError ();
     used = 0;
+
+    @{Venue}HeaderPacket* hdr = (@{Venue}HeaderPacket*)((char*)buf);
+
+    @{Venue}HeaderPacket base;
+    memcpy (buf, &base, sizeof(base));
 
     if (len < sizeof(@{Venue}HeaderPacket))
         return GW_CODEC_SHORT;
@@ -122,7 +117,25 @@ codecState
     }
     uint8_t type;
     d.getInteger (MessageType, type);
+    hdr->setMessageType(type);
 
+    uint8_t matchingUnit;
+    if(!d.getInteger (MatchingUnit, matchingUnit))
+    {
+        setLastError("MatchingUnit is missing or not integer");
+        return GW_CODEC_ERROR;
+    }
+    hdr->setMatchingUnit(matchingUnit);
+
+    uint32_t sequenceNumber;
+    if(!d.getInteger (SequenceNumber, sequenceNumber))
+    {
+        setLastError("SequenceNumber is missing or not integer");
+        return GW_CODEC_ERROR;
+    }
+    hdr->setSequenceNumber(sequenceNumber);
+
+    used+=sizeof(@{venue}HeaderPacket);
     codecState state = GW_CODEC_ERROR;
     switch (type) {
 @for message in messages:
@@ -134,10 +147,7 @@ codecState
             setLastError ("unknown message type");
             return GW_CODEC_ERROR;
     }
-
-    uint16_t* frameLength = (uint16_t*)buf;
-    *frameLength = used;
-
+    hdr->setMessageLength(used - 2);
     return state;
 }
 

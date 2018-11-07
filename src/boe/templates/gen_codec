@@ -424,7 +424,7 @@ ${indent}offset += ${length};""").\
 
 
 def set_optional_int_field(field, field_type, indent, pkt, cdr):
-    null_val = get_null(field_type); 
+    null_val = get_null(field_type);
     res = Template("""
 ${indent}$fieldType $lowerName;
 ${indent}if (!${cdr}.getInteger ($name, $lowerName))
@@ -462,6 +462,59 @@ ${indent}offset += sizeof ($fieldType);""").\
                   })
     return res
 
+def set_bitfield_int_field(field, field_type,  indent, pkt, cdr):
+    bits = 'm' + field['msg_name'] + 'Bits'
+    has_field_name = 'has' + field['name']
+    res = Template("""
+${indent}if (${bits}->${hasFieldName})
+${indent}{
+${indent}   $fieldType $lowerName;
+${indent}   if (!${cdr}.getInteger ($fieldName, $lowerName))
+${indent}   {
+${indent}       setLastError ("${fieldName} missing or not integer");
+${indent}       return GW_CODEC_ERROR;
+${indent}   }
+${indent}   ${packet}->set${fieldName} (${lowerName});
+${indent}   offset += sizeof ($fieldType);
+${indent}}
+${indent}""").\
+        substitute(**{'fieldType': field_type,
+                      'indent': indent * ' ',
+                      'bits': bits,
+                      'hasFieldName': has_field_name,
+                      'fieldName': field['name'],
+                      'lowerName': field['name'].lower(),
+                      'packet': pkt,
+                      'cdr': cdr})
+    return res
+
+def set_bitfield_string_field(field, field_type, indent, pkt, cdr):
+    bits = 'm' + field['msg_name'] + 'Bits'
+    length = types[field['type']]['length']
+    has_field_name = 'has' + field['name']
+    res = Template("""
+${indent}if (${bits}->${hasFieldName})
+${indent}{
+${indent}   $fieldType $lowerName;
+${indent}   if (!${cdr}.getString ($fieldName, $lowerName))
+${indent}   {
+${indent}       setLastError ("${fieldName} missing or not string");
+${indent}       return GW_CODEC_ERROR;
+${indent}   }
+${indent}   ${packet}->set${fieldName} (${lowerName});
+${indent}   offset += ${length};
+${indent}}
+${indent}""").\
+        substitute(**{'fieldType': field_type,
+                      'indent': indent * ' ',
+                      'bits': bits,
+                      'hasFieldName': has_field_name,
+                      'fieldName': field['name'],
+                      'lowerName': field['name'].lower(),
+                      'length': length,
+                      'packet': pkt,
+                      'cdr': cdr})
+    return res
 
 def set_field(field, indent=4, pkt='packet', cdr='d'):
     if isinstance(field, Group):
@@ -471,9 +524,6 @@ def set_field(field, indent=4, pkt='packet', cdr='d'):
 
         res = Template(
 """
-${indent}${comp_name}* packet${id} = (${comp_name}*)((char*)buf + offset);
-${indent}offset += sizeof (${comp_name});
-${indent}
 ${indent}if (d.getArraySize (${group_name}) > 0)
 ${indent}{
 ${indent}    cdrArray* ${group_name}Array = NULL;
@@ -481,7 +531,7 @@ ${indent}    d.getArray ($group_name, (const cdrArray**)(&${group_name}Array));
 ${indent}    for (cdrArray::iterator it = ${group_name}Array->begin(); it != ${group_name}Array->end(); ++it)
 ${indent}    {
 ${indent}        cdr& item = *it;
-${indent}        ${comp_name}* ${group_name_lower} = (${comp_name}*) ((char*)buf + offset);
+${indent}        ${comp_name}* ${group_name_lower}Element = (${comp_name}*) ((char*)buf + offset);
 """
         ).substitute(**{'indent': ' ' * indent,
                         'comp_name': comp['name'],
@@ -492,7 +542,7 @@ ${indent}        ${comp_name}* ${group_name_lower} = (${comp_name}*) ((char*)buf
                         'group_name_lower': group.original_name.lower()})
 
         for field in group.fields:
-            res += set_field(field, indent + 8, group.original_name.lower(), 'item') + \
+            res += set_field(field, indent + 8, group.original_name.lower() + 'Element', 'item') + \
                 '\n'
         res += "\n        }"
         res += "\n    }"
@@ -503,11 +553,16 @@ ${indent}        ${comp_name}* ${group_name_lower} = (${comp_name}*) ((char*)buf
     if 'int' in field_type:
         if field['optional']:
             return set_optional_int_field(field, field_type, indent, pkt, cdr)
+        elif field['bitfield']:
+            return set_bitfield_int_field(field, field_type, indent, pkt, cdr)
         else:
             return set_int_field(field, field_type, indent, pkt, cdr)
 
     elif 'string' in field_type:
-        return set_string_field(field, field_type, indent, pkt, cdr)
+        if field['bitfield']:
+            return set_bitfield_string_field(field, field_type, indent, pkt, cdr)
+        else:
+            return set_string_field(field, field_type, indent, pkt, cdr)
 
     return "//TODO UNHANDLED {0} type {1}\n".format(field['name'], field_type)
 
