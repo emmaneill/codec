@@ -26,7 +26,7 @@
     <type name="char18" length="18" primitiveType="char"/>
     <type name="char20" length="20" primitiveType="char"/>
     <type name="char25" length="25" primitiveType="char"/>
-    <type name="char27" length="27" primitiveType="char"/> 
+    <type name="char27" length="27" primitiveType="char"/>
     <type name="char30" length="30" primitiveType="char"/>
     <type name="char32" length="32" primitiveType="char"/>
     <type name="char52" length="52" primitiveType="char"/>
@@ -42,10 +42,10 @@
         <type name ="Account" primitiveType ="char16"/>
         <type name ="PartyRole" primitiveType ="PartyRole_enum"/>
     </composite>
-    <composite name="messageHeader" description="Message identifiers and length of message root">
+    <composite name="Header" description="Message identifiers and length of message root">
       <type name="startOfMessage" primitiveType="char2"/>
       <type name="messageLength" primitiveType="uint16"/>
-      <type name="messageType" primitiveType="char1"/>
+      <type name="messageType" primitiveType="uint8_t"/>
       <type name="matchingUnit" primitiveType="uint8_t"/>
       <type name="sequenceNumber" primitiveType="uint32"/>
     </composite>
@@ -1247,11 +1247,11 @@
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="execID" type="uint64_t"/>
-    <field id="4" name="lastShares" type="uint32_t"/>
+    <field id="4" name="orderExecLastShares" type="uint32_t"/>
 	<field id="5" name="lastPx" type="uint64_t"/>
-	<field id="6" name="leavesQty" type="uint32_t"/>
-	<field id="7" name="baseLiquidityIndicator" type="char1"/>
-	<field id="8" name="subLiquidityIndicator" type="char1"/>
+	<field id="6" name="orderExecLeavesQty" type="uint32_t"/>
+	<field id="7" name="orderExecBaseLiquidityIndicator" type="char1"/>
+	<field id="8" name="orderExecSubLiquidityIndicator" type="char1"/>
 	<field id="9" name="contraBroker" type="char4"/>
 	<field id="10" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="11" name="numberOfBitfields" type="uint8_t"/>
@@ -1385,11 +1385,11 @@
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="orderID" type="uint64_t"/>
     <field id="4" name="execRefID" type="uint64_t"/>
-	<field id="5" name="side" type="Side_enum"/>
-	<field id="6" name="baseLiquidityIndicator" type="char1"/>
-	<field id="7" name="clearingFirm" type="char4"/>
-	<field id="8" name="clearingAccount" type="char4"/>
-	<field id="9" name="lastShares" type="uint32_t"/>
+	<field id="5" name="tradeCancelCorrectSide" type="Side_enum"/>
+	<field id="6" name="tradeCancelCorrectBaseLiquidityIndicator" type="char1"/>
+	<field id="7" name="tradeCancelCorrectClearingFirm" type="char4"/>
+	<field id="8" name="tradeCancelCorrectClearingAccount" type="char4"/>
+	<field id="9" name="tradeCancelCorrectLastShares" type="uint32_t"/>
 	<field id="10" name="lastPx" type="uint64_t"/>
 	<field id="11" name="correctedPrice" type="uint64_t"/>
 	<field id="12" name="origTime" type="char8"/>
@@ -1801,9 +1801,9 @@
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="tradeReportID" type="char20"/>
-    <field id="3" name="tradeReportRefID" type="char20"/>
+    <field id="3" name="tradeCaptureTradeReportRefID" type="char20"/>
     <field id="4" name="tradeID" type="char8"/>
-	<field id="5" name="lastShares" type="uint32_t"/>
+	<field id="5" name="tradeCaptureLastShares" type="uint32_t"/>
     <field id="6" name="lastPx" type="uint64_t"/>
 	<field id="7" name="contraBroker" type="char4"/>
 	<field id="8" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
@@ -1944,9 +1944,9 @@
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="tradeReportID" type="char20"/>
-    <field id="3" name="tradeReportRefID" type="char20"/>
+    <field id="3" name="tradeCaptureDeclineTradeReportRefID" type="char20"/>
     <field id="4" name="tradeID" type="char8"/>
-	<field id="5" name="lastShares" type="uint32_t"/>
+	<field id="5" name="tradeCaptureDeclineLastShares" type="uint32_t"/>
     <field id="6" name="lastPx" type="uint64_t"/>
 	<field id="7" name="contraBroker" type="char4"/>
 	<field id="8" name="tradeCaptureDeclineReason" type="ReasonCodes_enum"/>

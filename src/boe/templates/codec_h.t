@@ -11,7 +11,6 @@
 #include "cdr.h"
 #include "codec.h"
 #include "orderMsgBits.h"
-#include "tradeBits.h"
 #include "newOrderBits.h"
 #include "cancelOrderBits.h"
 #include "modifyOrderBits.h"
@@ -95,12 +94,12 @@ class @{venue}Codec: public codec
         NewOrderBits* mNewOrderBits;
         CancelOrderBits* mCancelOrderBits;
         ModifyOrderBits* mModifyOrderBits;
-        TradeBits* mTradeCancelCorrectBits;
         TradeCaptureBits* mTradeCaptureReportBits;
-        TradeBits* mTradeCaptureReportRejectBits;
-        TradeBits* mTradeCaptureConfirmBits;
-        TradeBits* mTradeCaptureReportDecline;
-        TradeBits* mTradeCaptureReportAcknowledgementBits;
+        OrderMsgBits* mTradeCancelCorrectBits;
+        OrderMsgBits* mTradeCaptureReportRejectBits;
+        OrderMsgBits* mTradeCaptureConfirmBits;
+        OrderMsgBits* mTradeCaptureReportDeclineBits;
+        OrderMsgBits* mTradeCaptureReportAcknowledgementBits;
 
 };
 

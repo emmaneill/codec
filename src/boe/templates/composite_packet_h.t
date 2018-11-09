@@ -11,8 +11,8 @@
 #include <sstream>
 #include <stdint.h>
 
-#include "@{venue}Constants.h"
-#include "@{venue}PacketUtils.h"
+#include "@{Venue}Constants.h"
+#include "@{Venue}PacketUtils.h"
 
 
 namespace neueda

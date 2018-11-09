@@ -1,4 +1,4 @@
-BoeTradeCaptureReportRejectPacket.@require(get_field_type, msg_data, msg_name, Venue, venue, generation_date, types, packet_get_set, get_default_value, get_field_initialise) 
+@require(get_field_type, msg_data, msg_name, Venue, venue, generation_date, types, packet_get_set, get_default_value, get_field_initialise) 
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
@@ -10,8 +10,8 @@ BoeTradeCaptureReportRejectPacket.@require(get_field_type, msg_data, msg_name, V
 #include <string>
 #include <sstream>
 #include <stdint.h>
-#include "@{venue}PacketUtils.h"
-#include "@{venue}HeaderPacket.h"
+#include "@{Venue}PacketUtils.h"
+#include "@{Venue}HeaderPacket.h"
 
 
 namespace neueda

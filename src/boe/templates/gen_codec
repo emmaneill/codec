@@ -205,7 +205,7 @@ def get_default_value(field, indent=0, field_type=None):
 def packet_get_set_string(field, indent=4):
     #if not field['bitfield']:
     return Template("""
-${indent}${field_type} get${field_name} () const
+${indent}${field_type} get${field_name} ()
 ${indent}{
 ${indent}    return getString (m${field_name}, sizeof (m${field_name}));
 ${indent}}
@@ -223,7 +223,7 @@ ${indent}}""").substitute(**{'indent': indent * ' ',
 def packet_get_set_int(field, indent=4):
     #if not field['bitfield']:
     return Template("""
-${indent}${field_type} get${field_name} () const
+${indent}${field_type} get${field_name} ()
 ${indent}{
 ${indent}    return m${field_name};
 ${indent}}

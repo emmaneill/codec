@@ -2223,6 +2223,19 @@ using namespace std;
 #define OrigTASPrice 4280
 #define ExtExecInst 4281
 #define SideGroupSection 4282
+#define OrderExecLeavesQty 4283
+#define OrderExecLastShares 4284
+#define OrderExecBaseLiquidityIndicator 4285
+#define OrderExecSubLiquidityIndicator 4286
+#define TradeCancelCorrectSide 4287
+#define TradeCancelCorrectClearingAccount 4288
+#define TradeCancelCorrectClearingFirm 4289
+#define TradeCancelCorrectLastShares 4290
+#define TradeCancelCorrectBaseLiquidityIndicator 4291
+#define TradeCaptureRejectText 4292
+#define TradeCaptureDeclineText 4293
+#define TradeCaptureDeclineLastShares 4294
+#define TradeCaptureDeclineTradeReportRefID 4295
 namespace neueda
 {
 

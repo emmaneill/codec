@@ -2206,6 +2206,20 @@
   <field name= "OrigTASPrice" number="4280" venue="Boe"/>
   <field name= "ExtExecInst" number="4281" venue="Boe"/>
   <field name= "SideGroupSection" number="4282" venue="Boe"/>
+  <field name = "OrderExecLeavesQty" number="4283" venue="Boe"/>
+  <field name = "OrderExecLastShares" number="4284" venue="Boe"/>
+  <field name = "OrderExecBaseLiquidityIndicator" number="4285" venue="Boe"/>
+  <field name = "OrderExecSubLiquidityIndicator" number="4286" venue="Boe"/>
+  <field name = "TradeCancelCorrectSide" number="4287" venue="Boe"/>
+  <field name = "TradeCancelCorrectClearingAccount" number="4288" venue="Boe"/>
+  <field name = "TradeCancelCorrectClearingFirm" number="4289" venue="Boe"/>
+  <field name = "TradeCancelCorrectLastShares" number="4290" venue="Boe"/>
+  <field name = "TradeCancelCorrectBaseLiquidityIndicator" number="4291" venue="Boe"/>
+  <field name = "TradeCaptureRejectText" number="4292" venue="Boe"/>
+  <field name = "TradeCaptureDeclineText" number="4293" venue="Boe"/>
+  <field name = "TradeCaptureDeclineLastShares" number="4294" venue="Boe"/>
+  <field name = "TradeCaptureDeclineTradeReportRefID" number="4295" venue="Boe"/>
+
 
     FieldMapCreated = true;
 

@@ -43,9 +43,6 @@ codecState
 codecState
 @{venue}Codec::put@{msg['name']} (const cdr& d, void* buf, size_t len, size_t& used)
 {
-    @{Venue}@{msg['name']}Packet base;
-    memcpy (buf, &base, sizeof(base));
-
     @if len(msg_data[msg['name']]) > 0:
     @{Venue}@{msg['name']}Packet* packet = (@{Venue}@{msg['name']}Packet*)((char*)buf);
     @end
