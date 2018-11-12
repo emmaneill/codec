@@ -10,7 +10,8 @@
 #include <string>
 #include <sstream>
 #include <stdint.h>
-#include "@{Venue}PacketUtils.h"
+
+/*#include "@{venue}PacketUtils.h"*/
 #include "@{Venue}HeaderPacket.h"
 
 

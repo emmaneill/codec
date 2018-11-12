@@ -16,6 +16,7 @@
 #include "modifyOrderBits.h"
 #include "tradeCaptureBits.h"
 
+
 #define LOGIN_RESPONSE 0x24
 #define LOGOUT 0x08
 #define SERVER_HEARTBEAT 0x09
@@ -83,6 +84,7 @@ class @{venue}Codec: public codec
                                     size_t& used);
 @end
 
+
         OrderMsgBits* mOrderExecutionBits;
         OrderMsgBits* mOrderModifiedBits;
         OrderMsgBits* mOrderRejectedBits;
@@ -100,6 +102,7 @@ class @{venue}Codec: public codec
         OrderMsgBits* mTradeCaptureConfirmBits;
         OrderMsgBits* mTradeCaptureReportDeclineBits;
         OrderMsgBits* mTradeCaptureReportAcknowledgementBits;
+
 
 };
 

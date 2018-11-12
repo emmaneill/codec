@@ -7,7 +7,7 @@
 #ifndef @venue.upper()_PACKETS_H
 #define @venue.upper()_PACKETS_H
 
-/* #include "@{venue}MessageHeaderPacket.h" */
+#include "@{Venue}MessageHeaderPacket.h"
 @for comp in composites:
 #include "@{comp}.h"
 @end

@@ -292,9 +292,9 @@ def get_field_type(field):
         t = field['primitiveType']
     if t == 'unsigned_char':
         t = 'uint8_t'
-    elif t == 'enum' :
+    elif 'enum' in t :
         t = 'uint8_t'
-    elif t == 'set':
+    elif 'set' in t:
         s = sets[t]
         if s['encodingType'] == 'uint8':
             t = 'uint8_t'
@@ -399,6 +399,9 @@ ${indent}    offset += sizeof (${comp_name});
             return get_bitfield_string_field(field, field_type, indent, pkt, cdr)
         else:
             return get_string_field(field, field_type, indent, pkt, cdr)
+    
+    elif 'enum' in field_type:
+            return get_int_field(field, field_type, indent, pkt, cdr)
 
     return "//TODO UNHANDLED {0} type {1}".format(field['name'], field_type)
 
@@ -565,7 +568,9 @@ ${indent}        ${comp_name}* ${group_name_lower}Element = (${comp_name}*) ((ch
             return set_bitfield_string_field(field, field_type, indent, pkt, cdr)
         else:
             return set_string_field(field, field_type, indent, pkt, cdr)
-
+    elif 'enum' in field_type:
+        return set_int_field(field, field_type, indent, pkt, cdr)
+    
     return "//TODO UNHANDLED {0} type {1}\n".format(field['name'], field_type)
 
 def load_xml_context(fxml):
@@ -612,6 +617,7 @@ def load_xml_context(fxml):
 
     for composite in types_root.findall('composite'):
         comp = dict(composite.attrib)
+        comp_name = comp['name']
         comp['name'] = 'Boe' + comp['name'][0].upper() + \
             comp['name'][1:] + 'Packet'
         composites[comp['name']] = comp
@@ -657,6 +663,7 @@ def load_xml_context(fxml):
                     group.append_field(field)
                 msg_data[msg_name].append(group)
                 groups.append(group)
+                
 
     return {
         'enums': enum,
