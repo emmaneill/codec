@@ -13,13 +13,13 @@
 
 #include "@{venue}Constants.h"
 /*#include "@{venue}PacketUtils.h"*/
- #include "@{Venue}MessageHeaderPacket.h" 
+ #include "@{Venue}HeaderPacket.h" 
 
 
 namespace neueda
 {
 
-PACKED(class optiq@{group.name}Packet
+PACKED(class @{venue}@{group.name}Packet
 {
 public:
 @for field in group.fields:
@@ -28,7 +28,7 @@ public:
     @end
 @end
 
-    optiq@{group.name}Packet ()
+    @{venue}@{group.name}Packet ()
     {
 @for field in group.fields:
     @if not field.is_group():
