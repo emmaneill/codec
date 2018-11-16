@@ -10,7 +10,14 @@
 #include <stdint.h>
 #include "cdr.h"
 #include "codec.h"
-
+#include "codecHelpers.h"
+#include "orderMsgBits.h"
+#include "newOrderBits.h"
+#include "cancelOrderBits.h"
+#include "modifyOrderBits.h"
+#include "tradeCaptureBits.h"
+#include "packets/BoeHeaderPacket.h"
+#include "packets/BoePackets.h"
 
 #define LOGIN_RESPONSE 0x24
 #define LOGOUT 0x08
@@ -79,6 +86,24 @@ class @{venue}Codec: public codec
                                     size_t& used);
 @end
 
+        OrderMsgBits* mOrderExecutionBits;
+        OrderMsgBits* mOrderModifiedBits;
+        OrderMsgBits* mOrderRejectedBits;
+        OrderMsgBits* mOrderRestatedBits;
+        OrderMsgBits* mOrderAcknowledgementBits;
+        OrderMsgBits* mOrderCancelledBits;
+        OrderMsgBits* mUserModifyRejectedBits;
+        OrderMsgBits* mCancelRejectedBits;
+        OrderMsgBits* mTradeCaptureReportRejectBits;
+        OrderMsgBits* mTradeCaptureConfirmBits;
+        OrderMsgBits* mTradeCaptureReportDecline;
+        OrderMsgBits* mTradeCaptureReportAcknowledgementBits;
+        OrderMsgBits* mTradeCancelCorrectBits;
+        OrderMsgBits* mTradeCaptureReportDeclineBits;
+        NewOrderBits* mNewOrderBits;
+        CancelOrderBits* mCancelOrderBits;
+        ModifyOrderBits* mModifyOrderBits;
+        TradeCaptureBits* mTradeCaptureReportBits;
 
 
 };

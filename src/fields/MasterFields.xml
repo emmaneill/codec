@@ -2219,8 +2219,12 @@
   <field name = "TradeCaptureDeclineText" number="4293" venue="Boe"/>
   <field name = "TradeCaptureDeclineLastShares" number="4294" venue="Boe"/>
   <field name = "TradeCaptureDeclineTradeReportRefID" number="4295" venue="Boe"/>
-
-
+  <field name = "TradeCaptureDeclineReason" number="4296" venue="Boe"/>
+  <field name = "TradeCaptureLastShares" number="4297" venue="Boe"/>
+  <field name = "TradeCaptureTradeReportRefID" number="4298" venue="Boe"/>
+  <field name = "TradeCaptureRejectReason" number="4299" venue="Boe"/>
+  <field name = "SideGroup" number="4300" venue="Boe"/>
+    
     FieldMapCreated = true;
 
 </fields>

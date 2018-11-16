@@ -139,6 +139,7 @@ ${indent}${cdr}.setInteger (${fieldName}, ${packet}->get${fieldName} ());""").\
     return res
 
 def get_bitfield_string_field(field, t, indent, pkt, cdr):
+    #if field['msg_name'] is not 'NewOrder' or 'CancelOrder' or 'ModifyOrder' or 'TradeCaptureReport':
     bits = 'm' + field['msg_name'] + 'Bits'
     length = types[field['type']]['length']
     has_field_name = 'has' + field['name']
@@ -323,7 +324,7 @@ ${indent}for (int i = 0; i < numBitfields; i++)
 ${indent}{
 ${indent}    cdr item;
 ${indent}    ${group_packet}* bitfieldElement = (${group_packet}*) ((char*)buf + offset);
-${indent}    item.setString(Bitfield, bitfieldElement->getBitfield ());
+${indent}    item.setInteger(Bitfield, bitfieldElement->getBitfield ());
 ${indent}    BitfieldArray.push_back(item);
 ${indent}    offset += sizeof (${group_packet});
 ${indent}}

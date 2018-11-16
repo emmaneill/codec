@@ -12,8 +12,8 @@
 #include <stdint.h>
 
 #include "@{venue}Constants.h"
-/*#include "@{venue}PacketUtils.h"*/
- #include "@{Venue}HeaderPacket.h" 
+#include "@{Venue}PacketUtils.h"
+#include "@{Venue}HeaderPacket.h" 
 
 
 namespace neueda

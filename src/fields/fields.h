@@ -2236,6 +2236,12 @@ using namespace std;
 #define TradeCaptureDeclineText 4293
 #define TradeCaptureDeclineLastShares 4294
 #define TradeCaptureDeclineTradeReportRefID 4295
+#define TradeCaptureDeclineReason 4296
+#define TradeCaptureLastShares 4297
+#define TradeCaptureTradeReportRefID 4298
+#define TradeCaptureRejectReason 4299
+#define SideGroup 4300
+
 namespace neueda
 {
 

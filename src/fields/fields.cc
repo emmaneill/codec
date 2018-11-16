@@ -2223,6 +2223,28 @@ FieldUtils::createMap ()
     m[4280] = "OrigTASPrice";
     m[4281] = "ExtExecInst";
     m[4282] = "SideGroupSection";
+    m[4283] = "OrderExecLeavesQty";
+    m[4284] = "OrderExecLastShares";
+    m[4285] = "OrderExecBaseLiquidityIndicator";
+    m[4286] = "OrderExecSubLiquidityIndicator";
+    m[4287] = "TradeCancelCorrectSide";
+    m[4288] = "TradeCancelCorrectClearingAccount";
+    m[4289] = "TradeCancelCorrectClearingFirm";
+    m[4290] = "TradeCancelCorrectLastShares";
+    m[4291] = "TradeCancelCorrectBaseLiquidityIndicator";
+    m[4292] = "TradeCaptureRejectText";
+    m[4293] = "TradeCaptureDeclineText";
+    m[4294] = "TradeCaptureDeclineLastShares";
+    m[4295] = "TradeCaptureDeclineTradeReportRefID";
+    m[4296] = "TradeCaptureDeclineReason";
+    m[4297] = "TradeCaptureLastShares";
+    m[4298] = "TradeCaptureTradeReportRefID";
+    m[4299] = "TradeCaptureRejectReason";
+    m[4300] = "SideGroup";
+
+
+    
+    
 
     FieldMapCreated = true;
     return m;

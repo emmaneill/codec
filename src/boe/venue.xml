@@ -153,7 +153,7 @@
     <field id="3" name="orderQty" type="uint32_t"/>
     <field id="4" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="5" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="6" name="ClearingFirm" presence="bitfield" type="char4"/>
     <field id="7" name="ClearingAccount" presence="bitfield" type="char4"/>
@@ -225,7 +225,7 @@
     <field id="1" name="OrigClOrdID" type="char20"/>
     <field id="2" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="3" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="4" name="ClearingFirm" presence="bitfield" type="char4"/>
     <field id="5" name="MassCancelLockout" presence="bitfield" type="uint8_t" ignore="true"/>
@@ -250,7 +250,7 @@
     <field id="2" name="origClOrdID" type="char20"/>
     <field id="3" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="4" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="5" name="ClearingFirm" presence="bitfield" type="char4"/>
     <field id="6" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
@@ -276,7 +276,7 @@
     <field id="3" name="lastPx" type="uint64_t"/>
     <field id="4" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="5" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="6" name="NoSides" type="uint8_t"/>
     <field id="7" name="Symbol" presence="bitfield" type="char8"/>
@@ -329,7 +329,7 @@
     <field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="5" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="6" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="7" name="Side" presence="bitfield" type="char1"/>
     <field id="8" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -461,7 +461,7 @@
 	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="8" name="Side" presence="bitfield" type="char1"/>
     <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -592,7 +592,7 @@
 	<field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="5" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="6" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="7" name="Side" presence="bitfield" type="char1"/>
     <field id="8" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -724,7 +724,7 @@
 	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="8" name="Side" presence="bitfield" type="char1"/>
     <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -856,7 +856,7 @@
 	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="8" name="Side" presence="bitfield" type="char1"/>
     <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -987,7 +987,7 @@
 	<field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
 	<field id="5" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="6" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="7" name="Side" presence="bitfield" type="char1"/>
     <field id="8" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -1119,7 +1119,7 @@
 	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="8" name="Side" presence="bitfield" type="char1"/>
     <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -1256,7 +1256,7 @@
 	<field id="10" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="11" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="12" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="13" name="Side" presence="bitfield" type="char1"/>
     <field id="14" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -1396,7 +1396,7 @@
 	<field id="13" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="14" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="15" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="16" name="Side" presence="bitfield" type="char1"/>
     <field id="17" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -1526,7 +1526,7 @@
 	<field id="3" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="4" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="5" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="6" name="Side" presence="bitfield" type="char1"/>
     <field id="7" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -1666,7 +1666,7 @@
 	<field id="5" name="reservedInternal" presence="optional" ignore="true"  type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="8" name="Side" presence="bitfield" type="char1"/>
     <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -1809,7 +1809,7 @@
 	<field id="8" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="9" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="10" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="11" name="Side" presence="bitfield" type="char1"/>
     <field id="12" name="PegDifference" presence="bitfield" type="uint64_t"/>
@@ -1954,7 +1954,7 @@
 	<field id="10" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
     <field id="11" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="12" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="char1"/>
+        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
     </group>
     <field id="13" name="Side" presence="bitfield" type="char1"/>
     <field id="14" name="PegDifference" presence="bitfield" type="uint64_t"/>

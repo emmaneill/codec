@@ -11,7 +11,7 @@
 #include <sstream>
 #include <stdint.h>
 
-/*#include "@{venue}PacketUtils.h"*/
+#include "@{Venue}PacketUtils.h"
 #include "@{Venue}HeaderPacket.h"
 
 

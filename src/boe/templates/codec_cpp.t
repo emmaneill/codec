@@ -27,8 +27,8 @@ codecState
     d.setString (MessageName, "@{msg['name']}");
     size_t offset = sizeof (@{Venue}HeaderPacket);
     @if len(msg_data[msg['name']]) > 0:
-    @{Venue}@{msg['name']}Packet* packet = (@{Venue}@{msg['name']}Packet*)((char*)buf + offset);
-    offset += sizeof (@{Venue}@{msg['name']}Packet);
+    @{venue}@{msg['name']}Packet* packet = (@{venue}@{msg['name']}Packet*)((char*)buf + offset);
+    offset += sizeof (@{venue}@{msg['name']}Packet);
     @end
     @for field in msg_data[msg['name']]:
     @get_field(field)
@@ -44,11 +44,11 @@ codecState
 @{venue}Codec::put@{msg['name']} (const cdr& d, void* buf, size_t len, size_t& used)
 {
     @if len(msg_data[msg['name']]) > 0:
-    @{Venue}@{msg['name']}Packet* packet = (@{Venue}@{msg['name']}Packet*)((char*)buf);
+    @{venue}@{msg['name']}Packet* packet = (@{venue}@{msg['name']}Packet*)((char*)buf);
     @end
     size_t offset = sizeof (@{Venue}HeaderPacket);
 
-    if (len < sizeof (@{Venue}@{msg['name']}Packet))
+    if (len < sizeof (@{venue}@{msg['name']}Packet))
         return GW_CODEC_SHORT;
 
     @for field in msg_data[msg['name']]:
@@ -92,6 +92,7 @@ codecState
             return GW_CODEC_ERROR;
     }
     return GW_CODEC_ERROR;
+}
 
 codecState
 @{venue}Codec::encode (const cdr& d, void* buf, size_t len, size_t& used)
@@ -132,7 +133,7 @@ codecState
     }
     hdr->setSequenceNumber(sequenceNumber);
 
-    used+=sizeof(@{venue}HeaderPacket);
+    used+=sizeof(@{Venue}HeaderPacket);
     codecState state = GW_CODEC_ERROR;
     switch (type) {
 @for message in messages:
