@@ -35,6 +35,21 @@
     <composite name="bitfield" description="Group to represent repeated bitfields">
       <type name="bitfield" primitiveType="uint8_t"/>
     </composite>
+    <composite name="ParamGroups" description="Group to represent repeated param groups">
+      <type name="paramGroupLength" primitiveType="uint16_t"/>
+      <type name="paramGroupType" primitiveType="uint8_t"/>
+    </composite>
+    <composite name="ReturnBitfield" description="Group to represent repeated return bitfields">
+      <type name="messageType" primitiveType="uint8_t"/>
+      <type name="numOfReturnBitfield" primitiveType="uint8_t"/>
+      <type name="returnBitfield" primitiveType="uint8_t"/>
+    </composite>
+    <composite name="UnitSequence" description="Group to represent repeated unit sequences">
+      <type name="noUnspecifiedUnitReplay" primitiveType="uint8_t"/>
+      <type name="numOfUnits" primitiveType="uint8_t"/>
+      <type name="unitNumber" primitiveType="uint8_t"/>
+      <type name="unitSequence" primitiveType="uint64_t"/>
+    </composite>
     <composite name="SideGroup" description="Group to represent side information">
         <type name ="Side" primitiveType ="Side_enum"/>
         <type name ="Capacity" primitiveType ="Capacity_enum"/>
@@ -136,6 +151,11 @@
     <field id="3" name="noUnspecifiedUnitReplay" type="uint8_t"/>
     <field id="4" name="lastReceivedSequenceNumber" type="uint32_t"/>
     <field id="5" name="numberOfUnits" type="uint8_t"/>
+    <group dimensionType="UnitSequence" id="6" name="UnitSequence" numInGroup="numberOfUnits">
+        <field id="1" name ="unitNumber" type ="uint8_t"/>
+        <field id="2" name ="unitSequence" type ="uint64_t"/>
+    </group>
+    <field id="7" name="numberOfParamGroups" type="int8_t"/>
   </sbe:message>
   <sbe:message name="LogoutResponse" id="0x08">
     <!--Expanding sub message-->
@@ -154,7 +174,7 @@
     <field id="3" name="orderQty" type="uint32_t"/>
     <field id="4" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="5" name="bitfield">
-        <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
+        <field id="1" name ="bitfield" type ="uint8_t"/>
     </group>
     <field id="6" name="ClearingFirm" presence="bitfield" type="char4"/>
     <field id="7" name="ClearingAccount" presence="bitfield" type="char4"/>
@@ -1117,7 +1137,7 @@
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="cancelRejectReason" type="ReasonCodes_enum"/>
     <field id="4" name="cancelRejectText" type="char60"/>
-	<field id="5" name="reservedInternal" type="char1"/>
+	  <field id="5" name="reservedInternal" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1249,12 +1269,12 @@
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="execID" type="uint64_t"/>
     <field id="4" name="orderExecLastShares" type="uint32_t"/>
-	<field id="5" name="lastPx" type="uint64_t"/>
-	<field id="6" name="orderExecLeavesQty" type="uint32_t"/>
-	<field id="7" name="orderExecBaseLiquidityIndicator" type="char1"/>
-	<field id="8" name="orderExecSubLiquidityIndicator" type="char1"/>
-	<field id="9" name="contraBroker" type="char4"/>
-	<field id="10" name="reservedInternal" type="char1"/>
+    <field id="5" name="lastPx" type="uint64_t"/>
+    <field id="6" name="orderExecLeavesQty" type="uint32_t"/>
+    <field id="7" name="orderExecBaseLiquidityIndicator" type="char1"/>
+    <field id="8" name="orderExecSubLiquidityIndicator" type="char1"/>
+    <field id="9" name="contraBroker" type="char4"/>
+    <field id="10" name="reservedInternal" type="char1"/>
     <field id="11" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="12" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1386,15 +1406,15 @@
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="orderID" type="uint64_t"/>
     <field id="4" name="execRefID" type="uint64_t"/>
-	<field id="5" name="tradeCancelCorrectSide" type="Side_enum"/>
-	<field id="6" name="tradeCancelCorrectBaseLiquidityIndicator" type="char1"/>
-	<field id="7" name="tradeCancelCorrectClearingFirm" type="char4"/>
-	<field id="8" name="tradeCancelCorrectClearingAccount" type="char4"/>
-	<field id="9" name="tradeCancelCorrectLastShares" type="uint32_t"/>
-	<field id="10" name="lastPx" type="uint64_t"/>
-	<field id="11" name="correctedPrice" type="uint64_t"/>
-	<field id="12" name="origTime" type="char8"/>
-	<field id="13" name="reservedInternal" type="char1"/>
+    <field id="5" name="tradeCancelCorrectSide" type="Side_enum"/>
+    <field id="6" name="tradeCancelCorrectBaseLiquidityIndicator" type="char1"/>
+    <field id="7" name="tradeCancelCorrectClearingFirm" type="char4"/>
+    <field id="8" name="tradeCancelCorrectClearingAccount" type="char4"/>
+    <field id="9" name="tradeCancelCorrectLastShares" type="uint32_t"/>
+    <field id="10" name="lastPx" type="uint64_t"/>
+    <field id="11" name="correctedPrice" type="uint64_t"/>
+    <field id="12" name="origTime" type="char8"/>
+    <field id="13" name="reservedInternal" type="char1"/>
     <field id="14" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="15" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1524,7 +1544,7 @@
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="tradeReportID" type="char20"/>
-	<field id="3" name="reservedInternal" type="char1"/>
+  	<field id="3" name="reservedInternal" type="char1"/>
     <field id="4" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="5" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>

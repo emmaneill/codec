@@ -2242,6 +2242,13 @@ using namespace std;
 #define TradeCaptureRejectReason 4299
 #define SideGroup 4300
 #define ReservedInternal 4301
+#define ParamGroupType 4302
+#define ParamGroupLength 4303
+#define NumOfUnits 4304
+#define ReturnBitfield 4305
+#define NumOfReturnBitfield 4306
+#define UnitSequenceSection 4307
+
 
 namespace neueda
 {

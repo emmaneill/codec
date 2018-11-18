@@ -32,6 +32,66 @@ codecState
     @for field in msg_data[msg['name']]:
     @get_field(field)
     @end
+    @if 'Login' in msg['name']:
+    int NumParamGroups = packet->getNumberOfParamGroups ();
+   
+    cdrArray ParamGroupsArray;
+    for (int i = 0; i < NumParamGroups; i++)
+    {
+        cdr item;
+        BoeParamGroupsPacket* paramGroupsElement = (BoeParamGroupsPacket*) ((char*)buf + offset);
+        
+        item.setInteger(ParamGroupLength, paramGroupsElement->getParamGroupLength ());
+        ParamGroupsArray.push_back(item);
+        
+        item.setInteger(ParamGroupType, paramGroupsElement->getParamGroupType ());
+        ParamGroupsArray.push_back(item);
+        
+        if(paramGroupsElement->getParamGroupType () == 80)
+        {
+            BoeUnitSequencePacket* unitSequenceElement = (BoeUnitSequencePacket*) ((char*)buf + offset);
+            
+            cdrArray UnitSequenceArray;
+            item.setInteger(NoUnspecifiedUnitReplay, unitSequenceElement->getNoUnspecifiedUnitReplay ());
+            UnitSequenceArray.push_back(item);
+            
+            int NumUnits = unitSequenceElement->getNumOfUnits ();
+            item.setInteger(NumOfUnits, unitSequenceElement->getNumOfUnits ());
+            UnitSequenceArray.push_back(item);
+            
+            for (int i = 0; i < NumUnits; i++)
+            {
+                item.setInteger(UnitNumber, unitSequenceElement->getUnitNumber ());
+                UnitSequenceArray.push_back(item);
+                
+                item.setInteger(UnitSequence, unitSequenceElement->getUnitSequence ());
+                UnitSequenceArray.push_back(item);
+            }
+            offset += sizeof (unitSequenceElement);
+        }
+        else if(paramGroupsElement->getParamGroupType () == 81)
+        {
+            BoeReturnBitfieldPacket* returnBitfieldElement = (BoeReturnBitfieldPacket*) ((char*)buf + offset);
+            
+            cdrArray ReturnBitfieldArray;
+            item.setInteger(MessageType, returnBitfieldElement->getMessageType ());
+            ReturnBitfieldArray.push_back(item);
+            
+            int NumReturnBitfields = returnBitfieldElement->getNumOfReturnBitfield ();
+            item.setInteger(NumOfReturnBitfield, returnBitfieldElement->getNumOfReturnBitfield ());
+            ReturnBitfieldArray.push_back(item);
+            
+            for (int i = 0; i < NumReturnBitfields; i++)
+            {
+                item.setInteger(ReturnBitfield, returnBitfieldElement->getReturnBitfield ());
+                ReturnBitfieldArray.push_back(item);
+            }
+            offset += sizeof (returnBitfieldElement);
+        }
+        
+        offset += sizeof (BoeParamGroupsPacket);
+    }
+    @end
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -52,6 +112,114 @@ codecState
 
     @for field in msg_data[msg['name']]:
     @set_field(field)
+    @end
+    @if 'Login' in msg['name']:
+    int NumParamGroups = numberofparamgroups;
+
+    for (int i = 0; i < NumParamGroups; i++)
+    {
+        cdr item;
+        BoeParamGroupsPacket* paramGroupsElement = (BoeParamGroupsPacket*) ((char*)buf + offset);
+
+        uint16_t paramGroupLength;
+        if (!item.getInteger (ParamGroupLength, paramGroupLength))
+        {
+            setLastError ("ParamGroupLength missing or not integer");
+            return GW_CODEC_ERROR;
+        }
+        paramGroupsElement->setParamGroupLength (paramGroupLength);
+        offset += sizeof (int16_t);
+        
+        uint8_t paramGroupType;
+        if (!item.getInteger (ParamGroupType, paramGroupType))
+        {
+            setLastError ("ParamGroupType missing or not integer");
+            return GW_CODEC_ERROR;
+        }
+        paramGroupsElement->setParamGroupType (paramGroupType);
+        offset += sizeof (int8_t);
+                
+        if(paramGroupType == 80)
+        {
+            BoeUnitSequencePacket* unitSequenceElement = (BoeUnitSequencePacket*) ((char*)buf + offset);
+            cdrArray UnitSequenceArray;
+            
+            uint8_t noUnspecifiedUnitReplay;
+            if (!item.getInteger (NoUnspecifiedUnitReplay, noUnspecifiedUnitReplay))
+            {
+                setLastError ("NoUnspecifiedUnitReplay missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            unitSequenceElement->setNoUnspecifiedUnitReplay (noUnspecifiedUnitReplay);
+            offset += sizeof (int8_t);
+            
+            uint8_t numOfUnits;
+            if (!item.getInteger (NumOfUnits, numOfUnits))
+            {
+                setLastError ("NumOfUnits missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            unitSequenceElement->setNumOfUnits (numOfUnits);
+            offset += sizeof (int8_t);
+            
+            for (int i = 0; i < numOfUnits; i++)
+            {
+                uint8_t unitNumber;
+                if (!item.getInteger (UnitNumber, unitNumber))
+                {
+                    setLastError ("UnitNumber missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                unitSequenceElement->setUnitNumber (unitNumber);
+                offset += sizeof (int8_t);
+            
+                uint64_t unitSequence;
+                if (!item.getInteger (UnitSequence, unitSequence))
+                {
+                    setLastError ("UnitSequence missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                unitSequenceElement->setUnitSequence (unitSequence);
+                offset += sizeof (int64_t);
+            }
+        }
+        else if(paramGroupType == 81)
+        {
+            BoeReturnBitfieldPacket* returnBitfieldElement = (BoeReturnBitfieldPacket*) ((char*)buf + offset);
+            
+            cdrArray ReturnBitfieldArray;
+            
+            uint8_t messageType;
+            if (!item.getInteger (MessageType, messageType))
+            {
+                setLastError ("MessageType missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            returnBitfieldElement->setMessageType (messageType);
+            offset += sizeof (int8_t);
+            
+            uint8_t numReturnBitfields;
+            if (!item.getInteger (NumOfReturnBitfield, numReturnBitfields))
+            {
+                setLastError ("NumReturnBitfields missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            returnBitfieldElement->setNumOfReturnBitfield (numReturnBitfields);
+            offset += sizeof (int8_t);
+            
+            for (int i = 0; i < numReturnBitfields; i++)
+            {
+                uint64_t returnBitfield;
+                if (!item.getInteger (ReturnBitfield, returnBitfield))
+                {
+                    setLastError ("ReturnBitfield missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                returnBitfieldElement->setReturnBitfield (returnBitfield);
+                offset += sizeof (int64_t); 
+            }
+        }
+    }
     @end
     used += offset;
 

@@ -2242,10 +2242,12 @@ FieldUtils::createMap ()
     m[4299] = "TradeCaptureRejectReason";
     m[4300] = "SideGroup";
     m[4301] = "ReservedInternal";
-
-
-    
-    
+    m[4302] = "ParamGroupType";
+    m[4303] = "ParamGroupLength";
+    m[4304] = "NumOfUnits";
+    m[4305] = "ReturnBitfield";
+    m[4306] = "NumOfReturnBitfield";
+    m[4307] = "UnitSequenceSection";
 
     FieldMapCreated = true;
     return m;

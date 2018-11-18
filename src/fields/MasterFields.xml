@@ -2225,7 +2225,13 @@
   <field name = "TradeCaptureRejectReason" number="4299" venue="Boe"/>
   <field name = "SideGroup" number="4300" venue="Boe"/>
   <field name = "ReservedInternal" number="4301" venue="Boe"/>
-    
+  <field name = "ParamGroupType" number="4302" venue="Boe"/>
+  <field name = "ParamGroupLength" number="4303" venue="Boe"/>
+  <field name = "NumOfUnits" number="4304" venue="Boe"/>
+  <field name = "ReturnBitfield" number="4305" venue="Boe"/>
+  <field name = "NumOfReturnBitfield" number="4306" venue="Boe"/>
+  <field name = "UnitSequenceSection" number="4307" venue="Boe"/>
+        
     FieldMapCreated = true;
 
 </fields>
