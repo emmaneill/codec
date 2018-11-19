@@ -2248,7 +2248,13 @@ FieldUtils::createMap ()
     m[4305] = "ReturnBitfield";
     m[4306] = "NumOfReturnBitfield";
     m[4307] = "UnitSequenceSection";
-
+    m[4308] = "PurgeRejectText";
+    m[4309] = "PurgeRejectReason";
+    m[4310] = "CustomGroupIDSection";
+    m[4311] = "CustomGroupID";
+    m[4312] = "NumberOfCustomGroupIDs";
+    m[4313] = "MassCancel";
+    
     FieldMapCreated = true;
     return m;
 }

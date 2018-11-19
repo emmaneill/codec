@@ -74,6 +74,8 @@ def get_null(t):
         return '//TODO unhandled type for get_null {0}'.format(t)
 
 def get_bitfield_int_field(field, t,  indent, pkt, cdr):
+    if 'Login' in field['msg_name']:
+        break
     null_val = get_null(t)
     bits = 'm' + field['msg_name'] + 'Bits'
     has_field_name = 'has' + field['name']
@@ -140,7 +142,8 @@ ${indent}offset += sizeof (${t});""").\
     return res
 
 def get_bitfield_string_field(field, t, indent, pkt, cdr):
-    #if field['msg_name'] is not 'NewOrder' or 'CancelOrder' or 'ModifyOrder' or 'TradeCaptureReport':
+    if 'Login' in field['msg_name']:
+        break
     bits = 'm' + field['msg_name'] + 'Bits'
     length = types[field['type']]['length']
     has_field_name = 'has' + field['name']
@@ -482,6 +485,8 @@ ${indent}offset += sizeof ($fieldType);""").\
     return res
 
 def set_bitfield_int_field(field, field_type,  indent, pkt, cdr):
+    if 'Login' in field['msg_name']:
+        break
     bits = 'm' + field['msg_name'] + 'Bits'
     has_field_name = 'has' + field['name']
     res = Template("""
@@ -508,6 +513,8 @@ ${indent}""").\
     return res
 
 def set_bitfield_string_field(field, field_type, indent, pkt, cdr):
+    if 'Login' in field['msg_name']:
+        break
     bits = 'm' + field['msg_name'] + 'Bits'
     length = types[field['type']]['length']
     has_field_name = 'has' + field['name']
@@ -539,7 +546,7 @@ def set_field(field, indent=4, pkt='packet', cdr='d'):
     if isinstance(field, Group):
         group = field
         comp = composites[group.type]
-        group_packet = 'Boe' + group.name + 'Packet'
+        group_packet = 'Boe' + group.name + 'Packet'     
 
         res = Template(
 """
@@ -568,7 +575,8 @@ ${indent}        ${comp_name}* ${group_name_lower}Element = (${comp_name}*) ((ch
         return res
 
     field_type = get_field_type(field)
-
+    #if field['bitfield'] and field
+    
     if 'int' in field_type:
         if field['optional']:
             return set_optional_int_field(field, field_type, indent, pkt, cdr)

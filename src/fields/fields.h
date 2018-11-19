@@ -2248,7 +2248,12 @@ using namespace std;
 #define ReturnBitfield 4305
 #define NumOfReturnBitfield 4306
 #define UnitSequenceSection 4307
-
+#define PurgeRejectText 4308
+#define PurgeRejectReason 4309
+#define CustomGroupIDSection 4310
+#define CustomGroupID 4311
+#define NumberOfCustomGroupIDs 4312
+#define MassCancel 4313
 
 namespace neueda
 {

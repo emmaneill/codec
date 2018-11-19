@@ -2231,6 +2231,12 @@
   <field name = "ReturnBitfield" number="4305" venue="Boe"/>
   <field name = "NumOfReturnBitfield" number="4306" venue="Boe"/>
   <field name = "UnitSequenceSection" number="4307" venue="Boe"/>
+  <field name = "PurgeRejectText" number="4308" venue="Boe"/>
+  <field name = "PurgeRejectReason" number="4309" venue="Boe"/>
+  <field name = "CustomGroupIDSection" number="4310" venue="Boe"/>
+  <field name = "CustomGroupID" number="4311" venue="Boe"/>
+  <field name = "NumberOfCustomGroupIDs" number="4312" venue="Boe"/>
+  <field name = "MassCancel" number="4313" venue="Boe"/>
         
     FieldMapCreated = true;
 

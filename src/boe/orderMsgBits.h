@@ -196,5 +196,9 @@
         struct TradeCaptureReportAcknowledgementBits : OrderMsgBits
         {
         };
+
+        struct PurgeOrderBits : OrderMsgBits
+        {
+        };
 #endif /* ORDER_MSG_BITS_H */
 

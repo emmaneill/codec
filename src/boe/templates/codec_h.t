@@ -37,6 +37,8 @@
 #define TRADECAPTUREREPORTREJECT_BITFIELDS_SIZE 15
 #define TRADECAPTURECONFIRM_BITFIELDS_SIZE 15
 #define TRADECAPTUREREPORTDECLINE_BITFIELDS_SIZE 15
+#define PURGEORDER_BITFIELDS_SIZE 15
+#define ORDERMSG_BITFIELDS_SIZE 15
 
 namespace neueda
 {
@@ -98,8 +100,8 @@ class @{venue}Codec: public codec
         CancelOrderBits* mCancelOrderBits;
         ModifyOrderBits* mModifyOrderBits;
         TradeCaptureReportBits* mTradeCaptureReportBits;
-
-
+        PurgeOrderBits* mPurgeOrderBits;
+        OrderMsgBits* mReturnBits;
 };
 
 } // namespace neueda
