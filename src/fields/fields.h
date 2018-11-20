@@ -2241,6 +2241,7 @@ using namespace std;
 #define TradeCaptureTradeReportRefID 4298
 #define TradeCaptureRejectReason 4299
 #define SideGroup 4300
+#define ReservedInternal 4301
 
 namespace neueda
 {

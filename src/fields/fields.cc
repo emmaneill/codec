@@ -2241,6 +2241,7 @@ FieldUtils::createMap ()
     m[4298] = "TradeCaptureTradeReportRefID";
     m[4299] = "TradeCaptureRejectReason";
     m[4300] = "SideGroup";
+    m[4301] = "ReservedInternal";
 
 
     

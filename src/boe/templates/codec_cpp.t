@@ -28,7 +28,6 @@ codecState
     size_t offset = sizeof (@{Venue}HeaderPacket);
     @if len(msg_data[msg['name']]) > 0:
     @{venue}@{msg['name']}Packet* packet = (@{venue}@{msg['name']}Packet*)((char*)buf + offset);
-    offset += sizeof (@{venue}@{msg['name']}Packet);
     @end
     @for field in msg_data[msg['name']]:
     @get_field(field)

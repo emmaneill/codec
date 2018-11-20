@@ -2224,6 +2224,7 @@
   <field name = "TradeCaptureTradeReportRefID" number="4298" venue="Boe"/>
   <field name = "TradeCaptureRejectReason" number="4299" venue="Boe"/>
   <field name = "SideGroup" number="4300" venue="Boe"/>
+  <field name = "ReservedInternal" number="4301" venue="Boe"/>
     
     FieldMapCreated = true;
 

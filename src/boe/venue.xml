@@ -122,14 +122,14 @@
       <validValue name="Order_Received_by_Cboe_During_Replay">29</validValue>
     </enum>
     </types>
-  <sbe:message name="LoginRequest" id="1">
+  <sbe:message name="LoginRequest" id="0x37">
     <!--Expanding sub message-->
     <field id="1" name="TradingSessionSubID" type="char4"/>
     <field id="2" name="username" type="char4"/>
     <field id="3" name="password" type="char10"/>
     <field id="4" name="numberOfParamGroups" type="int8_t"/>
   </sbe:message>
-  <sbe:message name="LoginResponse" id="2">
+  <sbe:message name="LoginResponse" id="0x24">
     <!--Expanding sub message-->
     <field id="1" name="loginResponseStatus" type="LoginResponseStatus_enum"/>
     <field id="2" name="loginResponseText" type="char60"/>
@@ -137,16 +137,16 @@
     <field id="4" name="lastReceivedSequenceNumber" type="uint32_t"/>
     <field id="5" name="numberOfUnits" type="uint8_t"/>
   </sbe:message>
-  <sbe:message name="LogoutResponse" id="3">
+  <sbe:message name="LogoutResponse" id="0x08">
     <!--Expanding sub message-->
     <field id="1" name="LogoutReason" type="LogoutResponseStatus_enum"/>
     <field id="2" name="LogoutReasonText" type="char60"/>
     <field id="3" name="lastReceivedSequenceNumber" type="uint32_t"/>
     <field id="4" name="NumberOfUnits" type="uint8_t"/>
   </sbe:message>
-  <sbe:message name="ServerHeartbeat" id="4"/>
-  <sbe:message name="ReplayComplete" id="5"/>
-  <sbe:message name="NewOrder" id="6">
+  <sbe:message name="ServerHeartbeat" id="0x09"/>
+  <sbe:message name="ReplayComplete" id="0x13"/>
+  <sbe:message name="NewOrder" id="0x38">
     <!--Expanding sub message-->
     <field id="1" name="clOrdID" type="char20"/>
     <field id="2" name="side" type="Side_enum"/>
@@ -220,7 +220,7 @@
     <field id="68" name="Reserved6" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="69" name="Reserved7" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="CancelOrder" id="7">
+  <sbe:message name="CancelOrder" id="0x39">
     <!--Expanding sub message-->
     <field id="1" name="OrigClOrdID" type="char20"/>
     <field id="2" name="numberOfBitfields" type="uint8_t"/>
@@ -244,7 +244,7 @@
     <field id="18" name="Reserved6" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="19" name="Reserved7" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="ModifyOrder" id="8">
+  <sbe:message name="ModifyOrder" id="0x3A">
     <!--Expanding sub message-->
     <field id="1" name="clOrdID" type="char20"/>
     <field id="2" name="origClOrdID" type="char20"/>
@@ -269,7 +269,7 @@
     <field id="19" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="20" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/> 
   </sbe:message>
-  <sbe:message name="TradeCaptureReport" id="9">
+  <sbe:message name="TradeCaptureReport" id="0x3C">
     <!--Expanding sub message-->
     <field id="1" name="tradeReportID" type="char20"/>
     <field id="2" name="lastShares" type="uint32_t"/>
@@ -321,12 +321,12 @@
     <field id="46" name="Reserved" presence="bitfield" type="uint8_t" ignore="true"/>
 	<!--Expand for optional fields and repeating groups-->
   </sbe:message>
-  <sbe:message name="OrderAcknowledgement" id="10">
+  <sbe:message name="OrderAcknowledgement" id="0x25">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="orderID" type="uint64_t"/>
-    <field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+    <field id="4" name="reservedInternal" type="char1"/>
     <field id="5" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="6" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -452,13 +452,13 @@
     <field id="125" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="126" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="OrderRejected" id="11">
+  <sbe:message name="OrderRejected" id="0x26">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="orderRejectReason" type="char1"/>
     <field id="4" name="orderRejectText" type="char60"/>
-	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="5" name="reservedInternal" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -584,12 +584,12 @@
     <field id="126" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="127" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="OrderModified" id="12">
+  <sbe:message name="OrderModified" id="0x27">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="orderID" type="uint64_t"/>
-	<field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="4" name="reservedInternal" type="char1"/>
     <field id="5" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="6" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -715,13 +715,13 @@
     <field id="138" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="139" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="OrderRestated" id="13">
+  <sbe:message name="OrderRestated" id="0x28">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="orderID" type="uint64_t"/>
     <field id="4" name="restatementReason" type="RestatementReason_enum"/>
-	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="5" name="reservedInternal" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -847,13 +847,13 @@
     <field id="126" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="127" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="UserModifyRejected" id="14">
+  <sbe:message name="UserModifyRejected" id="0x29">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="modifyRejectReason" type="ReasonCodes_enum"/>
     <field id="4" name="modifyRejectText" type="char60"/>
-	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="5" name="reservedInternal" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -979,12 +979,12 @@
     <field id="126" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="127" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="OrderCancelled" id="15">
+  <sbe:message name="OrderCancelled" id="0x2A">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="cancelReason" type="ReasonCodes_enum"/>
-	<field id="4" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="4" name="reservedInternal" type="char1"/>
 	<field id="5" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="6" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1110,13 +1110,13 @@
     <field id="124" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="125" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="CancelRejected" id="16">
+  <sbe:message name="CancelRejected" id="0x2B">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
     <field id="3" name="cancelRejectReason" type="ReasonCodes_enum"/>
     <field id="4" name="cancelRejectText" type="char60"/>
-	<field id="5" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="5" name="reservedInternal" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1242,7 +1242,7 @@
     <field id="126" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="127" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="OrderExecution" id="17">
+  <sbe:message name="OrderExecution" id="0x2C">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
@@ -1253,7 +1253,7 @@
 	<field id="7" name="orderExecBaseLiquidityIndicator" type="char1"/>
 	<field id="8" name="orderExecSubLiquidityIndicator" type="char1"/>
 	<field id="9" name="contraBroker" type="char4"/>
-	<field id="10" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="10" name="reservedInternal" type="char1"/>
     <field id="11" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="12" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1379,7 +1379,7 @@
     <field id="131" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="132" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="TradeCancelCorrect" id="18">
+  <sbe:message name="TradeCancelCorrect" id="0x2D">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="clOrdID" type="char20"/>
@@ -1393,7 +1393,7 @@
 	<field id="10" name="lastPx" type="uint64_t"/>
 	<field id="11" name="correctedPrice" type="uint64_t"/>
 	<field id="12" name="origTime" type="char8"/>
-	<field id="13" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="13" name="reservedInternal" type="char1"/>
     <field id="14" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="15" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1519,11 +1519,11 @@
     <field id="134" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="135" name="Reserved5" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
-  <sbe:message name="TradeCaptureReportAcknowledgement" id="19">
+  <sbe:message name="TradeCaptureReportAcknowledgement" id="0x30">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="tradeReportID" type="char20"/>
-	<field id="3" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="3" name="reservedInternal" type="char1"/>
     <field id="4" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="5" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1657,13 +1657,13 @@
         <field id="5" name ="PartyRole" type ="PartyRole_enum"/>
     </group>
   </sbe:message>
-  <sbe:message name="TradeCaptureReportReject" id="20">
+  <sbe:message name="TradeCaptureReportReject" id="0x31">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="tradeReportID" type="char20"/>
     <field id="3" name="tradeCaptureRejectReason" type="ReasonCodes_enum"/>
     <field id="4" name="tradeCaptureRejectText" type="char60"/>
-	<field id="5" name="reservedInternal" presence="optional" ignore="true"  type="char1"/>
+	<field id="5" name="reservedInternal" type="char1"/>
     <field id="6" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="7" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>
@@ -1797,7 +1797,7 @@
         <field id="5" name ="PartyRole" type ="PartyRole_enum"/>
     </group>
   </sbe:message>
-  <sbe:message name="TradeCaptureConfirm" id="21">
+  <sbe:message name="TradeCaptureConfirm" id="0x32">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="tradeReportID" type="char20"/>
@@ -1940,7 +1940,7 @@
         <field id="5" name ="PartyRole" type ="PartyRole_enum"/>
     </group>
   </sbe:message>
-  <sbe:message name="TradeCaptureReportDecline" id="22">
+  <sbe:message name="TradeCaptureReportDecline" id="0x33">
     <!--Expanding sub message-->
     <field id="1" name="transactTime" type="uint64_t"/>
     <field id="2" name="tradeReportID" type="char20"/>
@@ -1951,7 +1951,7 @@
 	<field id="7" name="contraBroker" type="char4"/>
 	<field id="8" name="tradeCaptureDeclineReason" type="ReasonCodes_enum"/>
     <field id="9" name="tradeCaptureDeclineText" type="char60"/>
-	<field id="10" name="reservedInternal" presence="optional" ignore="true" type="char1"/>
+	<field id="10" name="reservedInternal" type="char1"/>
     <field id="11" name="numberOfBitfields" type="uint8_t"/>
     <group dimensionType="bitfield" id="12" name="bitfield">
         <field id="1" name ="bitfield" presence="optional" type ="uint8_t"/>

@@ -128,12 +128,13 @@ def get_int_field(field, t, indent, pkt, cdr):
         res = Template(""" 
 ${indent}int numBitfields = packet->get${fieldName} ();
 ${indent}${cdr}.setInteger (${fieldName}, ${packet}->get${fieldName} ());
-""").\
+${indent}offset += sizeof (${t});""").\
     substitute(**{'indent': indent * ' ', 't': t, 'fieldName': field['name'],
                   'packet': pkt, 'cdr': cdr})
     else:
         res = Template("""
-${indent}${cdr}.setInteger (${fieldName}, ${packet}->get${fieldName} ());""").\
+${indent}${cdr}.setInteger (${fieldName}, ${packet}->get${fieldName} ());
+${indent}offset += sizeof (${t});""").\
     substitute(**{'indent': indent * ' ', 't': t, 'fieldName': field['name'],
                   'packet': pkt, 'cdr': cdr})
     return res
@@ -164,9 +165,10 @@ def get_string_field(field, t, indent, pkt, cdr):
     # {t} val = packet->get{fieldName} ();
     length = types[field['type']]['length']
     res = Template("""
-${indent}${cdr}.setString (${fieldName}, ${packet}->get${fieldName} ());""").\
+${indent}${cdr}.setString (${fieldName}, ${packet}->get${fieldName} ());
+${indent}offset += ${length};""").\
         substitute(**{'indent': indent * ' ', 't': t, 'fieldName': field['name'],
-                  'packet': pkt, 'cdr': cdr})
+            'packet': pkt, 'cdr': cdr, 'length' : length})
     return res
 
 
@@ -530,10 +532,10 @@ def set_field(field, indent=4, pkt='packet', cdr='d'):
 
         res = Template(
 """
-${indent}if (d.getArraySize (${group_name}) > 0)
+${indent}if (d.getArraySize (${group_name}Section) > 0)
 ${indent}{
 ${indent}    cdrArray* ${group_name}Array = NULL;
-${indent}    d.getArray ($group_name, (const cdrArray**)(&${group_name}Array));
+${indent}    d.getArray (${group_name}Section, (const cdrArray**)(&${group_name}Array));
 ${indent}    for (cdrArray::iterator it = ${group_name}Array->begin(); it != ${group_name}Array->end(); ++it)
 ${indent}    {
 ${indent}        cdr& item = *it;
