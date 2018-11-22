@@ -114,7 +114,7 @@ codecState
     }
     uint8_t type;
     d.getInteger (MessageType, type);
-    hdr->setMessageType(type);
+    hdr->setMessageType (type);
 
     uint8_t matchingUnit;
     if(!d.getInteger (MatchingUnit, matchingUnit))
@@ -122,7 +122,7 @@ codecState
         setLastError("MatchingUnit is missing or not integer");
         return GW_CODEC_ERROR;
     }
-    hdr->setMatchingUnit(matchingUnit);
+    hdr->setMatchingUnit (matchingUnit);
 
     uint32_t sequenceNumber;
     if(!d.getInteger (SequenceNumber, sequenceNumber))
@@ -130,9 +130,9 @@ codecState
         setLastError("SequenceNumber is missing or not integer");
         return GW_CODEC_ERROR;
     }
-    hdr->setSequenceNumber(sequenceNumber);
+    hdr->setSequenceNumber (sequenceNumber);
 
-    used+=sizeof(@{Venue}HeaderPacket);
+    used += sizeof (@{Venue}HeaderPacket);
     codecState state = GW_CODEC_ERROR;
     switch (type) {
 @for message in messages:
@@ -144,7 +144,8 @@ codecState
             setLastError ("unknown message type");
             return GW_CODEC_ERROR;
     }
-    hdr->setMessageLength(used - 2);
+    //Message Length does not include first two bytes of message
+    hdr->setMessageLength (used - 2);
     return state;
 }
 

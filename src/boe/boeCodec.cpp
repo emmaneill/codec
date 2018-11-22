@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 13:42:16 22/11/18
+ * Generated 15:32:41 22/11/18
  */
 #include "boeCodec.h"
 #include "BoePackets.h"
@@ -135,19 +135,23 @@ boeCodec::getNewOrder (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (NEWORDER_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (NEWORDER_BITFIELDS_SIZE - numBitfields));
     mNewOrderBits = (NewOrderBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mNewOrderBits == NULL)
     {
@@ -400,19 +404,23 @@ boeCodec::getCancelOrder (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (CANCELORDER_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (CANCELORDER_BITFIELDS_SIZE - numBitfields));
     mCancelOrderBits = (CancelOrderBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mCancelOrderBits == NULL)
     {
@@ -458,19 +466,23 @@ boeCodec::getModifyOrder (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (MODIFYORDER_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (MODIFYORDER_BITFIELDS_SIZE - numBitfields));
     mModifyOrderBits = (ModifyOrderBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mModifyOrderBits == NULL)
     {
@@ -554,19 +566,23 @@ boeCodec::getTradeCaptureReport (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (TRADECAPTUREREPORT_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (TRADECAPTUREREPORT_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureReportBits = (TradeCaptureReportBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureReportBits == NULL)
     {
@@ -866,19 +882,23 @@ boeCodec::getOrderAcknowledgement (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (ORDERACKNOWLEDGEMENT_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (ORDERACKNOWLEDGEMENT_BITFIELDS_SIZE - numBitfields));
     mOrderAcknowledgementBits = (OrderAcknowledgementBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderAcknowledgementBits == NULL)
     {
@@ -1542,19 +1562,23 @@ boeCodec::getOrderRejected (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (ORDERREJECTED_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (ORDERREJECTED_BITFIELDS_SIZE - numBitfields));
     mOrderRejectedBits = (OrderRejectedBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderRejectedBits == NULL)
     {
@@ -2229,19 +2253,23 @@ boeCodec::getOrderModified (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (ORDERMODIFIED_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (ORDERMODIFIED_BITFIELDS_SIZE - numBitfields));
     mOrderModifiedBits = (OrderModifiedBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderModifiedBits == NULL)
     {
@@ -2919,19 +2947,23 @@ boeCodec::getOrderRestated (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (ORDERRESTATED_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (ORDERRESTATED_BITFIELDS_SIZE - numBitfields));
     mOrderRestatedBits = (OrderRestatedBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderRestatedBits == NULL)
     {
@@ -3609,19 +3641,23 @@ boeCodec::getUserModifyRejected (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (USERMODIFYREJECTED_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (USERMODIFYREJECTED_BITFIELDS_SIZE - numBitfields));
     mUserModifyRejectedBits = (UserModifyRejectedBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mUserModifyRejectedBits == NULL)
     {
@@ -4296,19 +4332,23 @@ boeCodec::getOrderCancelled (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (ORDERCANCELLED_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (ORDERCANCELLED_BITFIELDS_SIZE - numBitfields));
     mOrderCancelledBits = (OrderCancelledBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderCancelledBits == NULL)
     {
@@ -4986,19 +5026,23 @@ boeCodec::getCancelRejected (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (CANCELREJECTED_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (CANCELREJECTED_BITFIELDS_SIZE - numBitfields));
     mCancelRejectedBits = (CancelRejectedBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mCancelRejectedBits == NULL)
     {
@@ -5691,19 +5735,23 @@ boeCodec::getOrderExecution (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (ORDEREXECUTION_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (ORDEREXECUTION_BITFIELDS_SIZE - numBitfields));
     mOrderExecutionBits = (OrderExecutionBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderExecutionBits == NULL)
     {
@@ -6391,19 +6439,23 @@ boeCodec::getTradeCancelCorrect (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (TRADECANCELCORRECT_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (TRADECANCELCORRECT_BITFIELDS_SIZE - numBitfields));
     mTradeCancelCorrectBits = (TradeCancelCorrectBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCancelCorrectBits == NULL)
     {
@@ -7075,19 +7127,23 @@ boeCodec::getTradeCaptureReportAcknowledgement (cdr& d, const void* buf, size_t&
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTACKNOWLEDGEMENT_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTACKNOWLEDGEMENT_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureReportAcknowledgementBits = (TradeCaptureReportAcknowledgementBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureReportAcknowledgementBits == NULL)
     {
@@ -7798,19 +7854,23 @@ boeCodec::getTradeCaptureReportReject (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTREJECT_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTREJECT_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureReportRejectBits = (TradeCaptureReportRejectBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureReportRejectBits == NULL)
     {
@@ -8527,19 +8587,23 @@ boeCodec::getTradeCaptureConfirm (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (TRADECAPTURECONFIRM_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (TRADECAPTURECONFIRM_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureConfirmBits = (TradeCaptureConfirmBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureConfirmBits == NULL)
     {
@@ -9265,19 +9329,23 @@ boeCodec::getTradeCaptureReportDecline (cdr& d, const void* buf, size_t& used)
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
     
+    //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
-    memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+    
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
         cdr item;
         BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
-        item.setInteger(Bitfield, bitfieldElement->getBitfield ());
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
         BitfieldArray.push_back(item);
         offset += sizeof (BoeBitfieldPacket);
     }
-    memset(tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTDECLINE_BITFIELDS_SIZE - numBitfields));
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTDECLINE_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureReportDeclineBits = (TradeCaptureReportDeclineBits*) tmpbuf;
+    
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureReportDeclineBits == NULL)
     {
@@ -28111,19 +28179,19 @@ boeCodec::decode (cdr& d, const void* buf, size_t len, size_t& used)
     switch (hdr->mMessageType) {
         case 0x37:
         {
-            used+= hdr->getMessageLength () + 2;
+            used += hdr->getMessageLength () + 2;
             return GW_CODEC_SUCCESS;
             //return getLoginRequest (d, buf, used);
         }
         case 0x24:
         {
-            used+= hdr->getMessageLength () + 2;
+            used += hdr->getMessageLength () + 2;
             return GW_CODEC_SUCCESS;
             //return getLoginResponse (d, buf, used);
         }
         case 0x08:
         {
-            used+= hdr->getMessageLength () + 2;
+            used += hdr->getMessageLength () + 2;
             return GW_CODEC_SUCCESS;
             //return getLogoutResponse (d, buf, used);
         }
@@ -28195,7 +28263,7 @@ boeCodec::encode (const cdr& d, void* buf, size_t len, size_t& used)
     }
     uint8_t type;
     d.getInteger (MessageType, type);
-    hdr->setMessageType(type);
+    hdr->setMessageType (type);
 
     uint8_t matchingUnit;
     if(!d.getInteger (MatchingUnit, matchingUnit))
@@ -28203,7 +28271,7 @@ boeCodec::encode (const cdr& d, void* buf, size_t len, size_t& used)
         setLastError("MatchingUnit is missing or not integer");
         return GW_CODEC_ERROR;
     }
-    hdr->setMatchingUnit(matchingUnit);
+    hdr->setMatchingUnit (matchingUnit);
 
     uint32_t sequenceNumber;
     if(!d.getInteger (SequenceNumber, sequenceNumber))
@@ -28211,9 +28279,9 @@ boeCodec::encode (const cdr& d, void* buf, size_t len, size_t& used)
         setLastError("SequenceNumber is missing or not integer");
         return GW_CODEC_ERROR;
     }
-    hdr->setSequenceNumber(sequenceNumber);
+    hdr->setSequenceNumber (sequenceNumber);
 
-    used+=sizeof(BoeHeaderPacket);
+    used += sizeof (BoeHeaderPacket);
     codecState state = GW_CODEC_ERROR;
     switch (type) {
         case 0x37:
@@ -28289,7 +28357,8 @@ boeCodec::encode (const cdr& d, void* buf, size_t len, size_t& used)
             setLastError ("unknown message type");
             return GW_CODEC_ERROR;
     }
-    hdr->setMessageLength(used - 2);
+    //Message Length does not include first two bytes of message
+    hdr->setMessageLength (used - 2);
     return state;
 }
 
