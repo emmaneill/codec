@@ -1,100 +1,96 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 25/07/2018
+ * Generated 13:42:16 22/11/18
  */
-#ifndef BOE_LOGIN_RESPONSE_PACKET_H
-#define BOE_LOGIN_RESPONSE_PACKET_H
+#ifndef _BOE_LOGINRESPONSE_PACKET_H_
+#define _BOE_LOGINRESPONSE_PACKET_H_
 
 #include <string>
-#include <vector>
 #include <sstream>
-#include <cstddef>
 #include <stdint.h>
-#include <stdexcept>
-#include "BoeHeaderPacket.h"
+
 #include "BoePacketUtils.h"
+#include "BoeHeaderPacket.h"
+
 
 namespace neueda
 {
 
-PACKED(class BoeLoginResponsePacket
+PACKED(class boeLoginResponsePacket
 {
-    public:
-	  
-        char                    mLoginResponseStatus[1];
-        char                    mLoginResponseText[60];
-        uint8_t                 mNoUnspecifiedUnitReplay;
-        uint32_t                mLastReceivedSequenceNumber;
-        uint8_t	                mNumberOfUnits;
+public:
+        uint8_t mLoginResponseStatus;
+        char mLoginResponseText[60];
+        uint8_t mNoUnspecifiedUnitReplay;
+        uint32_t mLastReceivedSequenceNumber;
+        uint8_t mNumberOfUnits;
 
+    boeLoginResponsePacket ()
+    {
+        mLoginResponseStatus = 0;
+        memset (mLoginResponseText, 0, 60);
+        mNoUnspecifiedUnitReplay = 0;
+        mLastReceivedSequenceNumber = 0;
+        mNumberOfUnits = 0;
+    }
 
-        BoeLoginResponsePacket ()
-        {
-/*            mStartOfMessage = "";
-            mMessageLength  = 0;
-            mMessageType    = "";
-            mMatchingUnit   = 0;
-            mSeqNum         = 0; */
-        }
+    
+    uint8_t getLoginResponseStatus ()
+    {
+        return mLoginResponseStatus;
+    }
 
-        string  getLoginResponseStatus()
-        {
-            return getString(mLoginResponseStatus, sizeof(mLoginResponseStatus));
-        }
+    bool setLoginResponseStatus (uint8_t val)
+    {
+        mLoginResponseStatus = val;
+        return true;
+    }
+    
+    string getLoginResponseText ()
+    {
+        return getString (mLoginResponseText, sizeof (mLoginResponseText));
+    }
 
-        string  getLoginResponseText()
-        {
-            return getString(mLoginResponseText, sizeof(mLoginResponseText)) ;
-        }
+    bool setLoginResponseText (const string& val)
+    {
+        return setString (mLoginResponseText, val, sizeof (mLoginResponseText));
+    }
+    
+    uint8_t getNoUnspecifiedUnitReplay ()
+    {
+        return mNoUnspecifiedUnitReplay;
+    }
 
-        uint8_t getNoUnspecifiedUnitReplay()
-        {
-            return mNoUnspecifiedUnitReplay;
-        }
+    bool setNoUnspecifiedUnitReplay (uint8_t val)
+    {
+        mNoUnspecifiedUnitReplay = val;
+        return true;
+    }
+    
+    uint32_t getLastReceivedSequenceNumber ()
+    {
+        return mLastReceivedSequenceNumber;
+    }
 
-        uint32_t getLastReceivedSequenceNumber()
-        {
-            return mLastReceivedSequenceNumber;
-        }
+    bool setLastReceivedSequenceNumber (uint32_t val)
+    {
+        mLastReceivedSequenceNumber = val;
+        return true;
+    }
+    
+    uint8_t getNumberOfUnits ()
+    {
+        return mNumberOfUnits;
+    }
 
-	    uint8_t getNumberOfUnits()
-	    {
-	        return mNumberOfUnits;
-    	}
-
-        bool setLoginResponseStatus(char* val)
-        {
-            return setString(mLoginResponseStatus, (unsigned char*)val, sizeof(mLoginResponseStatus));
-        }
-
-        bool setLoginResponseText(char* val)
-        {
-        
-            return setString(mLoginResponseText, (unsigned char*)val, sizeof(mLoginResponseText));
-        }
-
-        bool setNoUnspecifiedUnitReplay(uint8_t val)
-        {
-            mNoUnspecifiedUnitReplay = val;
-            return true;
-        }
-
-        bool setLastReceivedSequenceNumber(uint32_t val)
-        {
-            mLastReceivedSequenceNumber = val;
-            return true;
-        }
-
-        bool setNumberOfUnits(uint8_t val)
-        {
-            mNumberOfUnits = val;
-            return true;
-        }
-
+    bool setNumberOfUnits (uint8_t val)
+    {
+        mNumberOfUnits = val;
+        return true;
+    }
 });
-
 
 } // namespace neueda
 
-#endif // BOE_LOGIN_RESPONSE_PACKET_H
+#endif

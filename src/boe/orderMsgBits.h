@@ -145,5 +145,56 @@
             unsigned int hasReserved5 : 1;
         };
 
+        struct OrderExecutionBits : OrderMsgBits
+        {
+        };
+
+        struct OrderModifiedBits : OrderMsgBits
+        {
+        };
+
+        struct OrderRejectedBits : OrderMsgBits
+        {
+        };
+
+        struct OrderRestatedBits : OrderMsgBits
+        {
+        };
+
+        struct OrderAcknowledgementBits : OrderMsgBits
+        {
+        };
+
+        struct OrderCancelledBits : OrderMsgBits
+        {
+        };
+
+        struct UserModifyRejectedBits : OrderMsgBits
+        {
+        };
+
+        struct CancelRejectedBits : OrderMsgBits
+        {
+        };
+
+        struct TradeCancelCorrectBits : OrderMsgBits
+        {
+        };
+
+        struct TradeCaptureReportRejectBits : OrderMsgBits
+        {
+        };
+
+        struct TradeCaptureConfirmBits : OrderMsgBits
+        {
+        };
+
+        struct TradeCaptureReportDeclineBits : OrderMsgBits
+        {
+        };
+
+        struct TradeCaptureReportAcknowledgementBits : OrderMsgBits
+        {
+        };
 #endif /* ORDER_MSG_BITS_H */
 

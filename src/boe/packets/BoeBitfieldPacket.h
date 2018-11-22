@@ -1,46 +1,48 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 25/07/2018
+ * Generated 13:42:16 22/11/18
  */
-#ifndef BOE_BITFIELD_PACKET_H
-#define BOE_BITFIELD_PACKET_H
+#ifndef _BOE_BOEBITFIELDPACKET_PACKET_H_
+#define _BOE_BOEBITFIELDPACKET_PACKET_H_
 
 #include <string>
-#include <vector>
 #include <sstream>
-#include <cstddef>
 #include <stdint.h>
-#include <stdexcept>
-#include "BoePacketUtils.h"
+
+
+#include "boeConstants.h"
 #include "BoeHeaderPacket.h"
+#include "BoePacketUtils.h"
+
 
 namespace neueda
 {
 
 PACKED(class BoeBitfieldPacket
 {
-    public:
-        char         mBitfield[1];
+public:
+        uint8_t mBitfield;
 
+    BoeBitfieldPacket ()
+    {
+        mBitfield = 0;
+    }
 
-        BoeBitfieldPacket ()
-        {
-        }
+    
+    uint8_t getBitfield ()
+    {
+        return mBitfield;
+    }
 
-        string getBitfield()
-        {
-            return getString(mBitfield, sizeof(mBitfield));
-        }
-
-        bool setBitfield(std::string val)
-        {
-            return setString(mBitfield, val, 1);
-        }
+    bool setBitfield (uint8_t val)
+    {
+        mBitfield = val;
+        return true;
+    }
 
 });
 
-
 } // namespace neueda
 
-#endif // BOE_BITFIELD_PACKET_H
+#endif

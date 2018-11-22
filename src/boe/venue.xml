@@ -145,6 +145,7 @@
     <field id="4" name="NumberOfUnits" type="uint8_t"/>
   </sbe:message>
   <sbe:message name="ServerHeartbeat" id="0x09"/>
+  <sbe:message name="ClientHeartbeat" id="0x03"/>
   <sbe:message name="ReplayComplete" id="0x13"/>
   <sbe:message name="NewOrder" id="0x38">
     <!--Expanding sub message-->
@@ -267,7 +268,7 @@
     <field id="17" name="OperatorID"  presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="18" name="Reserved2" presence="bitfield" type="uint8_t" ignore="true"/>
     <field id="19" name="Reserved3" presence="bitfield" type="uint8_t" ignore="true"/>
-    <field id="20" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/> 
+    <field id="20" name="Reserved4" presence="bitfield" type="uint8_t" ignore="true"/>
   </sbe:message>
   <sbe:message name="TradeCaptureReport" id="0x3C">
     <!--Expanding sub message-->
@@ -372,7 +373,7 @@
     <field id="45" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="46" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="47" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="48" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="48" name="Ccp" presence="bitfield" type="char1"/>
     <field id="49" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="50" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="51" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -504,7 +505,7 @@
     <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="48" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="Ccp" presence="bitfield" type="char1"/>
     <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="52" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -635,7 +636,7 @@
     <field id="58" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="59" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="60" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="61" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="61" name="Ccp" presence="bitfield" type="char1"/>
     <field id="62" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="63" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="64" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -767,10 +768,10 @@
     <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="48" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="Ccp" presence="bitfield" type="char1"/>
     <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
-    <field id="52" name="ExtExecInst" presence="bitfield" type="char1"/>
+    <field id="52" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
     <field id="53" name="BulkOrderIDs" presence="bitfield" type="uint64_t"/>
     <field id="54" name="BulkRejectReasons" presence="bitfield" type="char1"/>
     <field id="55" name="PartyRole" presence="bitfield" type="char1"/>
@@ -899,7 +900,7 @@
     <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="48" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="Ccp" presence="bitfield" type="char1"/>
     <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="52" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -1030,7 +1031,7 @@
     <field id="44" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="45" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="46" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="47" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="47" name="Ccp" presence="bitfield" type="char1"/>
     <field id="48" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="49" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="50" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -1162,7 +1163,7 @@
     <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="48" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="Ccp" presence="bitfield" type="char1"/>
     <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="52" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -1299,7 +1300,7 @@
     <field id="51" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="52" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="53" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="54" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="54" name="Ccp" presence="bitfield" type="char1"/>
     <field id="55" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="56" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="57" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -1439,7 +1440,7 @@
     <field id="54" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="55" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="56" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="57" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="57" name="Ccp" presence="bitfield" type="char1"/>
     <field id="58" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="59" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="60" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -1569,7 +1570,7 @@
     <field id="44" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="45" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="46" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="47" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="47" name="Ccp" presence="bitfield" type="char1"/>
     <field id="48" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="49" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="50" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -1709,7 +1710,7 @@
     <field id="46" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="47" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="48" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="49" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="49" name="Ccp" presence="bitfield" type="char1"/>
     <field id="50" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="51" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="52" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -1852,7 +1853,7 @@
     <field id="49" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="50" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="51" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="52" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="52" name="Ccp" presence="bitfield" type="char1"/>
     <field id="53" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="54" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="55" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>
@@ -1997,7 +1998,7 @@
     <field id="51" name="BaseLiquidityIndicator" presence="bitfield" type="char1"/>
     <field id="52" name="ExpireTime" presence="bitfield" type="uint64_t" ignore="true"/>
     <field id="53" name="SecondaryOrderID" presence="bitfield" type="uint64_t"/>
-    <field id="54" name="Ccp" presence="bitfield" type="uint8_t" ignore="true"/>
+    <field id="54" name="Ccp" presence="bitfield" type="char1"/>
     <field id="55" name="ContraCapacity" presence="bitfield" type="char1"/>
     <field id="56" name="AttributedQuote" presence="bitfield" type="uint8_t"/>
     <field id="57" name="ExtExecInst" presence="bitfield" type="char1" ignore="true"/>

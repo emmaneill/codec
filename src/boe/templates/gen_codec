@@ -321,6 +321,8 @@ def get_field(field, indent=4, pkt='packet', cdr='d'):
             bits = 'm' + group.msg_name + 'Bits'
             group_packet = 'BoeBitfieldPacket'
             res = Template("""
+${indent}char* tmpbuf = new char[numBitfields];
+${indent}memcpy((void*)tmpbuf, (void*)buf+offset, numBitfields);
 ${indent}cdrArray BitfieldArray;
 ${indent}for (int i = 0; i < numBitfields; i++)
 ${indent}{
@@ -330,6 +332,9 @@ ${indent}    item.setInteger(Bitfield, bitfieldElement->getBitfield ());
 ${indent}    BitfieldArray.push_back(item);
 ${indent}    offset += sizeof (${group_packet});
 ${indent}}
+${indent}memset(tmpbuf+numBitfields, 0, (${group_msg_name_upper}_BITFIELDS_SIZE - numBitfields));
+${indent}${bits} = (${group_msg_name}Bits*) tmpbuf;
+${indent}d.setArray(BitfieldSection, BitfieldArray);
 ${indent}if (${bits} == NULL)
 ${indent}{
 ${indent}   if (numBitfields !=0)
@@ -351,6 +356,8 @@ ${indent}char* newBuf = (char*) buf;
                   'id': group.id,
                   'original_name': group.original_name,
                   'group_name': group.name,
+                  'group_msg_name': group.msg_name,
+                  'group_msg_name_upper': group.msg_name.upper(),
                   'group_packet': group_packet
                    }
                     )

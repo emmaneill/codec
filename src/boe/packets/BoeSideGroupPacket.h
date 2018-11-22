@@ -1,90 +1,98 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 25/07/2018
+ * Generated 13:42:16 22/11/18
  */
-#ifndef BOE_SIDE_GROUP_PACKET_H
-#define BOE_SIDE_GROUP_PACKET_H
+#ifndef _BOE_BOESIDEGROUPPACKET_PACKET_H_
+#define _BOE_BOESIDEGROUPPACKET_PACKET_H_
 
 #include <string>
-#include <vector>
 #include <sstream>
-#include <cstddef>
 #include <stdint.h>
-#include <stdexcept>
+
+
+#include "boeConstants.h"
 #include "BoeHeaderPacket.h"
 #include "BoePacketUtils.h"
+
 
 namespace neueda
 {
 
 PACKED(class BoeSideGroupPacket
 {
-    public:
+public:
+        uint8_t mSide;
+        uint8_t mCapacity;
+        char mPartyID[4];
+        char mAccount[16];
+        uint8_t mPartyRole;
 
-        char                    mSide[1];
-        char                    mCapacity[1];
-        char                    mAccount[16];
-        char                    mPartyID[4];
-        char                    mPartyRole[1];
+    BoeSideGroupPacket ()
+    {
+        mSide = 0;
+        mCapacity = 0;
+        memset (mPartyID, 0, 4);
+        memset (mAccount, 0, 16);
+        mPartyRole = 0;
+    }
 
+    
+    uint8_t getSide ()
+    {
+        return mSide;
+    }
 
-        BoeSideGroupPacket ()
-        {
-        }
+    bool setSide (uint8_t val)
+    {
+        mSide = val;
+        return true;
+    }
+    
+    uint8_t getCapacity ()
+    {
+        return mCapacity;
+    }
 
-        string  getSide()
-        {
-            return getString(mSide, sizeof(mSide)) ;
-        }
-        
-        string  getCapacity()
-        {
-            return getString(mCapacity, sizeof(mCapacity)) ;
-        }
-        
-        string  getAccount()
-        {
-            return getString(mAccount, sizeof(mAccount)) ;
-        }
+    bool setCapacity (uint8_t val)
+    {
+        mCapacity = val;
+        return true;
+    }
+    
+    string getPartyID ()
+    {
+        return getString (mPartyID, sizeof (mPartyID));
+    }
 
-        string  getPartyID()
-        {
-            return getString(mPartyID, sizeof(mPartyID)) ;
-        }
+    bool setPartyID (const string& val)
+    {
+        return setString (mPartyID, val, sizeof (mPartyID));
+    }
+    
+    string getAccount ()
+    {
+        return getString (mAccount, sizeof (mAccount));
+    }
 
-        string  getPartyRole()
-        {
-            return getString(mPartyRole, sizeof(mPartyRole)) ;
-        }
+    bool setAccount (const string& val)
+    {
+        return setString (mAccount, val, sizeof (mAccount));
+    }
+    
+    uint8_t getPartyRole ()
+    {
+        return mPartyRole;
+    }
 
-        bool setSide(char* val)
-        {
-            return setString(mSide, (unsigned char*)val, sizeof(mSide));
-        }
+    bool setPartyRole (uint8_t val)
+    {
+        mPartyRole = val;
+        return true;
+    }
 
-        bool setCapacity(char* val)
-        {
-            return setString(mCapacity, (unsigned char*)val, sizeof(mCapacity));
-        }
-
-        bool setAccount(char* val)
-        {
-            return setString(mAccount, (unsigned char*)val, sizeof(mAccount));
-        }
-
-        bool setPartyID(char* val)
-        {
-            return setString(mPartyID, (unsigned char*)val, sizeof(mPartyID));
-        }
-
-        bool setPartyRole(char* val)
-        {
-            return setString(mPartyRole, (unsigned char*)val, sizeof(mPartyRole));
-        }
 });
-
 
 } // namespace neueda
 
-#endif // BOE_SIDE_GROUP_PACKET_H
+#endif

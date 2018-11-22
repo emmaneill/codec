@@ -1,80 +1,83 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 25/07/2018
+ * Generated 13:42:16 22/11/18
  */
-#ifndef BOE_LOGOUT_RESPONSE_PACKET_H
-#define BOE_LOGOUT_RESPONSE_PACKET_H
+#ifndef _BOE_LOGOUTRESPONSE_PACKET_H_
+#define _BOE_LOGOUTRESPONSE_PACKET_H_
 
 #include <string>
-#include <vector>
 #include <sstream>
-#include <cstddef>
 #include <stdint.h>
-#include <stdexcept>
-#include "BoeHeaderPacket.h"
+
 #include "BoePacketUtils.h"
+#include "BoeHeaderPacket.h"
+
 
 namespace neueda
 {
 
-PACKED(class BoeLogoutResponsePacket
+PACKED(class boeLogoutResponsePacket
 {
-    public:
-        char                    mLogoutReasonStatus[1];
-        char                    mLogoutReasonText[60];
-        uint32_t                mLastReceivedSequenceNumber;
-        uint8_t	                mNumberOfUnits;
+public:
+        uint8_t mLogoutReason;
+        char mLogoutReasonText[60];
+        uint32_t mLastReceivedSequenceNumber;
+        uint8_t mNumberOfUnits;
 
-        BoeLogoutResponsePacket ()
-        {
-        }
+    boeLogoutResponsePacket ()
+    {
+        mLogoutReason = 0;
+        memset (mLogoutReasonText, 0, 60);
+        mLastReceivedSequenceNumber = 0;
+        mNumberOfUnits = 0;
+    }
 
-        string  getLogoutReason()
-        {
-            return getString(mLogoutReasonStatus, sizeof(mLogoutReasonStatus));
-        }
+    
+    uint8_t getLogoutReason ()
+    {
+        return mLogoutReason;
+    }
 
-        string  getLogoutReasonText()
-        {
-            return getString(mLogoutReasonText, sizeof(mLogoutReasonText)) ;
-        }
+    bool setLogoutReason (uint8_t val)
+    {
+        mLogoutReason = val;
+        return true;
+    }
+    
+    string getLogoutReasonText ()
+    {
+        return getString (mLogoutReasonText, sizeof (mLogoutReasonText));
+    }
 
-        uint32_t getLastReceivedSequenceNumber()
-        {
-            return mLastReceivedSequenceNumber;
-        }
+    bool setLogoutReasonText (const string& val)
+    {
+        return setString (mLogoutReasonText, val, sizeof (mLogoutReasonText));
+    }
+    
+    uint32_t getLastReceivedSequenceNumber ()
+    {
+        return mLastReceivedSequenceNumber;
+    }
 
-	    uint8_t getNumberOfUnits()
-	    {
-	        return mNumberOfUnits;
-    	}
-        
-        bool setLogoutReason(char* buf)
-        {
-            return setString(mLogoutReasonStatus, (unsigned char*)buf, sizeof(mLogoutReasonStatus));
-        }
+    bool setLastReceivedSequenceNumber (uint32_t val)
+    {
+        mLastReceivedSequenceNumber = val;
+        return true;
+    }
+    
+    uint8_t getNumberOfUnits ()
+    {
+        return mNumberOfUnits;
+    }
 
-        bool setLogoutReasonText(char* buf)
-        {
-            return setString(mLogoutReasonText, (unsigned char*)buf, sizeof(mLogoutReasonText));
-        }
-
-        bool setLastReceivedSequenceNumber(uint32_t buf)
-        {
-            mLastReceivedSequenceNumber = buf;
-            return true;
-        }
-
-        bool setNumberOfUnits(uint8_t buf)
-        {
-            mNumberOfUnits = buf;
-            return true;
-        }
-
+    bool setNumberOfUnits (uint8_t val)
+    {
+        mNumberOfUnits = val;
+        return true;
+    }
 });
-
 
 } // namespace neueda
 
-#endif // BOE_Logout_RESPONSE_PACKET_H
+#endif

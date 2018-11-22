@@ -5,7 +5,7 @@
 #ifndef TRADE_CAPTURE_BITS_H
 #define TRADE_CAPTURE_BITS_H
 
-        struct TradeCaptureBits
+        struct TradeCaptureReportBits
         {
             //First byte
             unsigned int hasSymbol : 1;

@@ -19,30 +19,24 @@
 #include "packets/BoeHeaderPacket.h"
 #include "packets/BoePackets.h"
 
-#define LOGIN_RESPONSE 0x24
-#define LOGOUT 0x08
-#define SERVER_HEARTBEAT 0x09
-#define REPLAY_COMPLETE 0x13
-#define ORDER_ACK 0x25
-#define ORDER_REJECTED 0x26
-#define ORDER_MODIFIED 0x27
-#define ORDER_RESTATED 0x28
-#define USER_MODIFY_REJECT 0x29
-#define ORDER_CANCELLED 0x2A
-#define ORDER_CANCEL_REJECTED 0x2B
-#define ORDER_EXECUTION 0x2C
-#define TRADE_CANCEL_CORRECTED 0x2D
-
-#define LOGIN_REQUEST 0x37
-#define CLIENT_HEARTBEAT 0x03
-#define NEW_ORDER 0x38
-
 #define MIN_MSG_SIZE 10
-#define ORDER_MSG_BITFIELDS_SIZE 15
-#define NEW_ORDER_BITFIELDS_SIZE 8
-#define CANCEL_ORDER_BITFIELDS_SIZE 2
-#define MODIFY_ORDER_BITFIELDS_SIZE 2
-#define TRADE_CAPTURE_BITFIELDS_SIZE 5
+#define NEWORDER_BITFIELDS_SIZE 8
+#define CANCELORDER_BITFIELDS_SIZE 2
+#define MODIFYORDER_BITFIELDS_SIZE 2
+#define TRADECAPTUREREPORT_BITFIELDS_SIZE 5
+#define ORDERACKNOWLEDGEMENT_BITFIELDS_SIZE 15
+#define ORDERREJECTED_BITFIELDS_SIZE 15
+#define ORDERMODIFIED_BITFIELDS_SIZE 15
+#define ORDERRESTATED_BITFIELDS_SIZE 15
+#define USERMODIFYREJECTED_BITFIELDS_SIZE 15
+#define ORDERCANCELLED_BITFIELDS_SIZE 15
+#define CANCELREJECTED_BITFIELDS_SIZE 15
+#define ORDEREXECUTION_BITFIELDS_SIZE 15
+#define TRADECANCELCORRECT_BITFIELDS_SIZE 15
+#define TRADECAPTUREREPORTACKNOWLEDGEMENT_BITFIELDS_SIZE 15
+#define TRADECAPTUREREPORTREJECT_BITFIELDS_SIZE 15
+#define TRADECAPTURECONFIRM_BITFIELDS_SIZE 15
+#define TRADECAPTUREREPORTDECLINE_BITFIELDS_SIZE 15
 
 namespace neueda
 {
@@ -86,24 +80,24 @@ class @{venue}Codec: public codec
                                     size_t& used);
 @end
 
-        OrderMsgBits* mOrderExecutionBits;
-        OrderMsgBits* mOrderModifiedBits;
-        OrderMsgBits* mOrderRejectedBits;
-        OrderMsgBits* mOrderRestatedBits;
-        OrderMsgBits* mOrderAcknowledgementBits;
-        OrderMsgBits* mOrderCancelledBits;
-        OrderMsgBits* mUserModifyRejectedBits;
-        OrderMsgBits* mCancelRejectedBits;
-        OrderMsgBits* mTradeCaptureReportRejectBits;
-        OrderMsgBits* mTradeCaptureConfirmBits;
-        OrderMsgBits* mTradeCaptureReportDecline;
-        OrderMsgBits* mTradeCaptureReportAcknowledgementBits;
-        OrderMsgBits* mTradeCancelCorrectBits;
-        OrderMsgBits* mTradeCaptureReportDeclineBits;
+
+        OrderExecutionBits* mOrderExecutionBits;
+        OrderModifiedBits* mOrderModifiedBits;
+        OrderRejectedBits* mOrderRejectedBits;
+        OrderRestatedBits* mOrderRestatedBits;
+        OrderAcknowledgementBits* mOrderAcknowledgementBits;
+        OrderCancelledBits* mOrderCancelledBits;
+        UserModifyRejectedBits* mUserModifyRejectedBits;
+        CancelRejectedBits* mCancelRejectedBits;
+        TradeCancelCorrectBits* mTradeCancelCorrectBits;
+        TradeCaptureReportRejectBits* mTradeCaptureReportRejectBits;
+        TradeCaptureConfirmBits* mTradeCaptureConfirmBits;
+        TradeCaptureReportDeclineBits* mTradeCaptureReportDeclineBits;
+        TradeCaptureReportAcknowledgementBits* mTradeCaptureReportAcknowledgementBits;
         NewOrderBits* mNewOrderBits;
         CancelOrderBits* mCancelOrderBits;
         ModifyOrderBits* mModifyOrderBits;
-        TradeCaptureBits* mTradeCaptureReportBits;
+        TradeCaptureReportBits* mTradeCaptureReportBits;
 
 
 };

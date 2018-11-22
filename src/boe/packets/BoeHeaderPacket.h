@@ -1,92 +1,99 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 25/07/2018
+ * Generated 13:42:16 22/11/18
  */
-#ifndef BOE_HEADER_PACKET_H
-#define BOE_HEADER_PACKET_H
+#ifndef _BOE_BOEHEADERPACKET_PACKET_H_
+#define _BOE_BOEHEADERPACKET_PACKET_H_
 
 #include <string>
-#include <vector>
 #include <sstream>
-#include <cstddef>
 #include <stdint.h>
-#include <stdexcept>
+
+
+#include "boeConstants.h"
+#include "BoeHeaderPacket.h"
 #include "BoePacketUtils.h"
+
 
 namespace neueda
 {
 
 PACKED(class BoeHeaderPacket
 {
-    public:
-        char     	            mStartOfMessage[2];
-        uint16_t                mMessageLength;
-        uint8_t                 mMessageType;
-        uint8_t	                mMatchingUnit;
-        uint32_t                mSeqNum;
+public:
+        char mStartOfMessage[2];
+        uint16_t mMessageLength;
+        uint8_t mMessageType;
+        uint8_t mMatchingUnit;
+        uint32_t mSequenceNumber;
 
+    BoeHeaderPacket ()
+    {
+        memset (mStartOfMessage, 0, 2);
+        mMessageLength = 0;
+        mMessageType = 0;
+        mMatchingUnit = 0;
+        mSequenceNumber = 0;
+    }
 
-        BoeHeaderPacket ()
-        {
-        }
+    
+    string getStartOfMessage ()
+    {
+        return getString (mStartOfMessage, sizeof (mStartOfMessage));
+    }
 
-        string getStartOfMessage()
-        {
-            return getString(mStartOfMessage, sizeof(mStartOfMessage));
-        }
+    bool setStartOfMessage (const string& val)
+    {
+        return setString (mStartOfMessage, val, sizeof (mStartOfMessage));
+    }
+    
+    uint16_t getMessageLength ()
+    {
+        return mMessageLength;
+    }
 
-        uint16_t getMessageLength ()
-        {
-            return mMessageLength;
-        }
+    bool setMessageLength (uint16_t val)
+    {
+        mMessageLength = val;
+        return true;
+    }
+    
+    uint8_t getMessageType ()
+    {
+        return mMessageType;
+    }
 
-        uint8_t getMessageType ()
-        {
-            return mMessageType;
-        }
+    bool setMessageType (uint8_t val)
+    {
+        mMessageType = val;
+        return true;
+    }
+    
+    uint8_t getMatchingUnit ()
+    {
+        return mMatchingUnit;
+    }
 
-	    int getMatchingUnit()
-	    {
-	        return mMatchingUnit;
-    	}
+    bool setMatchingUnit (uint8_t val)
+    {
+        mMatchingUnit = val;
+        return true;
+    }
+    
+    uint32_t getSequenceNumber ()
+    {
+        return mSequenceNumber;
+    }
 
-        int16_t getSequenceNumber ()
-        {
-            return mSeqNum;
-        }
+    bool setSequenceNumber (uint32_t val)
+    {
+        mSequenceNumber = val;
+        return true;
+    }
 
-        bool setStartOfMessage(char* buf)
-        {
-            return setString(mStartOfMessage, (unsigned char*)buf, 2);
-        }
-
-        bool setMessageLength(uint16_t val)
-        {
-            mMessageLength = val;
-            return true;
-        }
-
-        bool setMessageType(uint8_t val)
-        {
-            mMessageType = val;
-            return true;
-        }
-
-        bool setMatchingUnit(uint8_t val)
-        {
-            mMatchingUnit = val;
-            return true;
-        }
-
-        bool setSequenceNumber(uint32_t val)
-        {
-            mSeqNum = val;
-            return true;
-        }
 });
-
 
 } // namespace neueda
 
-#endif // BOE_HEADER_PACKET_H
+#endif

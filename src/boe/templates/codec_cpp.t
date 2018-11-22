@@ -42,10 +42,10 @@ codecState
 codecState
 @{venue}Codec::put@{msg['name']} (const cdr& d, void* buf, size_t len, size_t& used)
 {
-    @if len(msg_data[msg['name']]) > 0:
-    @{venue}@{msg['name']}Packet* packet = (@{venue}@{msg['name']}Packet*)((char*)buf);
-    @end
     size_t offset = sizeof (@{Venue}HeaderPacket);
+    @if len(msg_data[msg['name']]) > 0:
+    @{venue}@{msg['name']}Packet* packet = (@{venue}@{msg['name']}Packet*)((char*)buf + offset);
+    @end
 
     if (len < sizeof (@{venue}@{msg['name']}Packet))
         return GW_CODEC_SHORT;
