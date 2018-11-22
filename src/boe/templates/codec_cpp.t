@@ -106,23 +106,132 @@ codecState
                 ReturnBitfieldArray.push_back(bitItem);
             }
             item.setArray(BitfieldSection, ReturnBitfieldArray);
-
-            memset (tmpbuf+NumReturnBitfields, 0, (ORDERMSG_BITFIELDS_SIZE - NumReturnBitfields));
-            OrderMsgBits*  mReturnBits = (OrderMsgBits*) tmpbuf;
-            if (mReturnBits == NULL)
+            
+            if (NumReturnBitfields ==0)
             {
-               if (NumReturnBitfields !=0)
-               {
+               used += offset;
+               return GW_CODEC_SUCCESS;
+            }
+            
+            switch (MessageType) {
+            case 0x25:
+                memset (tmpbuf+NumReturnBitfields, 0, (ORDERACKNOWLEDGEMENT_BITFIELDS_SIZE - NumReturnBitfields));
+                mOrderAcknowledgementBits = (OrderAcknowledgementBits*) tmpbuf;
+                if (mOrderAcknowledgementBits == NULL)
+                {
                    setLastError("Bitfields not correctly set");
                    return GW_CODEC_ERROR;
-               }
-               else
-               {
-                   used += offset;
-                   return GW_CODEC_SUCCESS;
-               }
+                }
+                break;
+            case 0x26:
+                memset (tmpbuf+NumReturnBitfields, 0, (ORDERREJECTED_BITFIELDS_SIZE - NumReturnBitfields));
+                mOrderRejectedBits = (OrderRejectedBits*) tmpbuf;
+                if (mOrderRejectedBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x27:
+                memset (tmpbuf+NumReturnBitfields, 0, (ORDERMODIFIED_BITFIELDS_SIZE - NumReturnBitfields));
+                mOrderModifiedBits = (OrderModifiedBits*) tmpbuf;
+                if (mOrderModifiedBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x28:
+                memset (tmpbuf+NumReturnBitfields, 0, (ORDERRESTATED_BITFIELDS_SIZE - NumReturnBitfields));
+                mOrderRestatedBits = (OrderRestatedBits*) tmpbuf;
+                if (mOrderRestatedBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x29:
+                memset (tmpbuf+NumReturnBitfields, 0, (USERMODIFYREJECTED_BITFIELDS_SIZE - NumReturnBitfields));
+                mUserModifyRejectedBits = (UserModifyRejectedBits*) tmpbuf;
+                if (mUserModifyRejectedBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x2A:
+                memset (tmpbuf+NumReturnBitfields, 0, (ORDERCANCELLED_BITFIELDS_SIZE - NumReturnBitfields));
+                mOrderCancelledBits = (OrderCancelledBits*) tmpbuf;
+                if (mOrderCancelledBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x2B:
+                memset (tmpbuf+NumReturnBitfields, 0, (CANCELREJECTED_BITFIELDS_SIZE - NumReturnBitfields));
+                mCancelRejectedBits = (CancelRejectedBits*) tmpbuf;
+                if (mCancelRejectedBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x2C:
+                memset (tmpbuf+NumReturnBitfields, 0, (ORDEREXECUTION_BITFIELDS_SIZE - NumReturnBitfields));
+                mOrderExecutionBits = (OrderExecutionBits*) tmpbuf;
+                if (mOrderExecutionBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x2D:
+                memset (tmpbuf+NumReturnBitfields, 0, (TRADECANCELCORRECT_BITFIELDS_SIZE - NumReturnBitfields));
+                mTradeCancelCorrectBits = (TradeCancelCorrectBits*) tmpbuf;
+                if (mTradeCancelCorrectBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x30:
+                memset (tmpbuf+NumReturnBitfields, 0, (TRADECAPTUREREPORTACKNOWLEDGEMENT_BITFIELDS_SIZE - NumReturnBitfields));
+                mTradeCaptureReportAcknowledgementBits = (TradeCaptureReportAcknowledgementBits*) tmpbuf;
+                if (mTradeCaptureReportAcknowledgementBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x31:
+                memset (tmpbuf+NumReturnBitfields, 0, (TRADECAPTUREREPORTREJECT_BITFIELDS_SIZE - NumReturnBitfields));
+                mTradeCaptureReportRejectBits = (TradeCaptureReportRejectBits*) tmpbuf;
+                if (mTradeCaptureReportRejectBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x32:
+                memset (tmpbuf+NumReturnBitfields, 0, (TRADECAPTURECONFIRM_BITFIELDS_SIZE - NumReturnBitfields));
+                mTradeCaptureConfirmBits = (TradeCaptureConfirmBits*) tmpbuf;
+                if (mTradeCaptureConfirmBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
+            case 0x33:
+                memset (tmpbuf+NumReturnBitfields, 0, (TRADECAPTUREREPORTDECLINE_BITFIELDS_SIZE - NumReturnBitfields));
+                mTradeCaptureReportDeclineBits = (TradeCaptureReportDeclineBits*) tmpbuf;
+                if (mTradeCaptureReportDeclineBits == NULL)
+                {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+                }
+                break;
             }
-            // TODO - Get optional fields
         }
         ParamGroupsArray.push_back(item);
     }
@@ -163,9 +272,6 @@ codecState
         memcpy (tmpBuf + offset, &numberofparamgroups, sizeof(uint8_t));
         offset += sizeof (uint8_t);
         @end
-
-        
-    int NumParamGroups = numberofparamgroups;
 
     if (d.getArraySize (ParamGroupSection) > 0)
     {

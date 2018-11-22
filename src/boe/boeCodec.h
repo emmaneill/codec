@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 00:20:32 03/12/18
+ * Generated 01:14:53 22/11/18
  */
 #ifndef BOE_CODEC_H
 #define BOE_CODEC_H

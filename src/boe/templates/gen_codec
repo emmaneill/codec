@@ -74,8 +74,6 @@ def get_null(t):
         return '//TODO unhandled type for get_null {0}'.format(t)
 
 def get_bitfield_int_field(field, t,  indent, pkt, cdr):
-    if 'Login' in field['msg_name']:
-        return ''
     null_val = get_null(t)
     bits = 'm' + field['msg_name'] + 'Bits'
     has_field_name = 'has' + field['name']
@@ -143,8 +141,6 @@ ${indent}offset += sizeof (${t});""").\
     return res
 
 def get_bitfield_string_field(field, t, indent, pkt, cdr):
-    if 'Login' in field['msg_name']:
-        return ''
     bits = 'm' + field['msg_name'] + 'Bits'
     length = types[field['type']]['length']
     has_field_name = 'has' + field['name']
@@ -343,23 +339,27 @@ ${indent}    item.setInteger (Bitfield, bitfieldElement->getBitfield ());
 ${indent}    BitfieldArray.push_back(item);
 ${indent}    offset += sizeof (${group_packet});
 ${indent}}
-${indent}//setting the rest of the remaining bitfields to zero
-${indent}memset (tmpbuf+numBitfields, 0, (${group_msg_name_upper}_BITFIELDS_SIZE - numBitfields));
-${indent}${bits} = (${group_msg_name}Bits*) tmpbuf;
-
+${indent}
 ${indent}d.setArray(BitfieldSection, BitfieldArray);
 ${indent}if (${bits} == NULL)
 ${indent}{
 ${indent}   if (numBitfields !=0)
 ${indent}   {
-${indent}       setLastError("Bitfields not correctly set");
-${indent}       return GW_CODEC_ERROR;
+${indent}       //setting the rest of the remaining bitfields to zero
+${indent}       memset (tmpbuf+numBitfields, 0, (${group_msg_name_upper}_BITFIELDS_SIZE - numBitfields));
+${indent}       ${bits} = (${group_msg_name}Bits*) tmpbuf;
 ${indent}   }
 ${indent}   else
 ${indent}   {
 ${indent}       used += offset;
 ${indent}       return GW_CODEC_SUCCESS;
 ${indent}   }
+${indent}}
+${indent}
+${indent}if (${bits} == NULL)
+${indent}{
+${indent}   setLastError("Bitfields not correctly set");
+${indent}   return GW_CODEC_ERROR;
 ${indent}}
 ${indent}//Get optional fields
 ${indent}char* newBuf = (char*) buf;
@@ -490,8 +490,6 @@ ${indent}offset += sizeof ($fieldType);""").\
     return res
 
 def set_bitfield_int_field(field, field_type,  indent, pkt, cdr):
-    if 'Login' in field['msg_name']:
-        return ''
     bits = 'm' + field['msg_name'] + 'Bits'
     has_field_name = 'has' + field['name']
     res = Template("""
@@ -518,8 +516,6 @@ ${indent}""").\
     return res
 
 def set_bitfield_string_field(field, field_type, indent, pkt, cdr):
-    if 'Login' in field['msg_name']:
-        return ''
     bits = 'm' + field['msg_name'] + 'Bits'
     length = types[field['type']]['length']
     has_field_name = 'has' + field['name']
