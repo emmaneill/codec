@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 15:32:41 22/11/18
+ * Generated 00:20:32 03/12/18
  */
 #include "boeCodec.h"
 #include "BoePackets.h"
@@ -36,7 +36,92 @@ boeCodec::getLoginRequest (cdr& d, const void* buf, size_t& used)
     offset += 10;
     
     d.setInteger (NumberOfParamGroups, packet->getNumberOfParamGroups ());
-    offset += sizeof (int8_t);
+    offset += sizeof (uint8_t);
+    int NumParamGroups = packet->getNumberOfParamGroups ();
+
+    cdrArray ParamGroupsArray;
+    for (int i = 0; i < NumParamGroups; i++)
+    {
+        cdr item;
+        BoeParamGroupsPacket* paramGroupsElement = (BoeParamGroupsPacket*) ((char*)buf + offset);
+
+        item.setInteger(ParamGroupLength, paramGroupsElement->getParamGroupLength ());
+        offset += sizeof (uint16_t);
+
+        item.setInteger(ParamGroupType, paramGroupsElement->getParamGroupType ());
+        offset += sizeof (uint8_t);
+
+        if(paramGroupsElement->getParamGroupType () == 0x80)
+        {
+            BoeUnitSequencePacket* unitSequenceElement = (BoeUnitSequencePacket*) ((char*)buf + offset);
+            offset += sizeof (BoeUnitSequencePacket);
+
+            cdrArray UnitSequenceArray;
+            item.setInteger(NoUnspecifiedUnitReplay, unitSequenceElement->getNoUnspecifiedUnitReplay ());
+
+            int NumUnits = unitSequenceElement->getNumOfUnits ();
+            item.setInteger(NumOfUnits, unitSequenceElement->getNumOfUnits ());
+
+            cdrArray UnitGroupArray;
+            for (int i = 0; i < NumUnits; i++)
+            {
+                cdr unitGroupItem;
+                BoeUnitGroupPacket* unitGroupElement = (BoeUnitGroupPacket*) ((char*)buf + offset);
+
+                unitGroupItem.setInteger (UnitNumber, unitGroupElement->getUnitNumber ());
+                offset += sizeof (uint8_t);
+
+                unitGroupItem.setInteger (UnitSequence, unitGroupElement->getUnitSequence ());
+                offset += sizeof (uint32_t);
+
+                UnitGroupArray.push_back (unitGroupItem);
+            }
+            item.setArray (UnitGroupSection, UnitGroupArray);
+            d.setArray (UnitSequenceSection, UnitSequenceArray);
+        }
+        else if(paramGroupsElement->getParamGroupType () == 0x81)
+        {
+            BoeReturnBitfieldPacket* returnBitfieldElement = (BoeReturnBitfieldPacket*) ((char*)buf + offset);
+
+            cdrArray ReturnBitfieldArray;
+            item.setInteger(MessageType, returnBitfieldElement->getMessageType ());
+            offset += sizeof (uint8_t);
+
+            int NumReturnBitfields = returnBitfieldElement->getNumOfReturnBitfield ();
+            item.setInteger(NumOfReturnBitfield, returnBitfieldElement->getNumOfReturnBitfield ());
+            offset += sizeof (uint8_t);
+
+            //copying bitfields to new temporary buffer
+            char* tmpbuf = new char[NumReturnBitfields];
+            memcpy ((void*)tmpbuf, (void*)buf+offset, NumReturnBitfields);
+
+            for (int i = 0; i < NumReturnBitfields; i++)
+            {
+                BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
+                item.setInteger (Bitfield, bitfieldElement->getBitfield ());
+                ReturnBitfieldArray.push_back(item);
+                offset += sizeof (BoeBitfieldPacket);
+            }
+            d.setArray(BitfieldSection, ReturnBitfieldArray);
+
+            memset (tmpbuf+NumReturnBitfields, 0, (ORDERMSG_BITFIELDS_SIZE - NumReturnBitfields));
+            OrderMsgBits*  mReturnBits = (OrderMsgBits*) tmpbuf;
+            if (mReturnBits == NULL)
+            {
+               if (NumReturnBitfields !=0)
+               {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+               }
+               else
+               {
+                   used += offset;
+                   return GW_CODEC_SUCCESS;
+               }
+            }
+            // TODO - Get optional fields
+        }
+    }
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -62,6 +147,113 @@ boeCodec::getLoginResponse (cdr& d, const void* buf, size_t& used)
     
     d.setInteger (NumberOfUnits, packet->getNumberOfUnits ());
     offset += sizeof (uint8_t);
+    
+    int numInGroup = 0;
+    d.getInteger (NumberOfUnits, numInGroup) ;
+    cdrArray UnitGroupArray;
+    for (int i = 0; i < numInGroup; i++)
+    {
+        cdr item;
+        BoeUnitGroupPacket* packet6 = (BoeUnitGroupPacket*)((char*)buf + offset);
+
+        item.setInteger (UnitNumber, packet6->getUnitNumber ());
+        offset += sizeof (uint8_t);
+
+        item.setInteger (UnitSequence, packet6->getUnitSequence ());
+        offset += sizeof (uint32_t);
+
+        UnitGroupArray.push_back (item);
+    }
+    d.setArray (UnitGroupSection, UnitGroupArray);
+
+    // currently hardcoded as packets are assinging inccorectly
+    int NumParamGroups = *(uint8_t*)(buf + offset);
+    d.setInteger (NumberOfParamGroups, *(uint8_t*)(buf + offset));
+    offset += sizeof (uint8_t);
+
+    cdrArray ParamGroupsArray;
+    for (int i = 0; i < NumParamGroups; i++)
+    {
+        cdr item;
+        BoeParamGroupsPacket* paramGroupsElement = (BoeParamGroupsPacket*) ((char*)buf + offset);
+
+        item.setInteger(ParamGroupLength, paramGroupsElement->getParamGroupLength ());
+        offset += sizeof (uint16_t);
+
+        item.setInteger(ParamGroupType, paramGroupsElement->getParamGroupType ());
+        offset += sizeof (uint8_t);
+
+        if(paramGroupsElement->getParamGroupType () == 0x80)
+        {
+            BoeUnitSequencePacket* unitSequenceElement = (BoeUnitSequencePacket*) ((char*)buf + offset);
+            offset += sizeof (BoeUnitSequencePacket);
+
+            cdrArray UnitSequenceArray;
+            item.setInteger(NoUnspecifiedUnitReplay, unitSequenceElement->getNoUnspecifiedUnitReplay ());
+
+            int NumUnits = unitSequenceElement->getNumOfUnits ();
+            item.setInteger(NumOfUnits, unitSequenceElement->getNumOfUnits ());
+
+            cdrArray UnitGroupArray;
+            for (int i = 0; i < NumUnits; i++)
+            {
+                cdr unitGroupItem;
+                BoeUnitGroupPacket* unitGroupElement = (BoeUnitGroupPacket*) ((char*)buf + offset);
+
+                unitGroupItem.setInteger (UnitNumber, unitGroupElement->getUnitNumber ());
+                offset += sizeof (uint8_t);
+
+                unitGroupItem.setInteger (UnitSequence, unitGroupElement->getUnitSequence ());
+                offset += sizeof (uint32_t);
+
+                UnitGroupArray.push_back (unitGroupItem);
+            }
+            item.setArray (UnitGroupSection, UnitGroupArray);
+            d.setArray (UnitSequenceSection, UnitSequenceArray);
+        }
+        else if(paramGroupsElement->getParamGroupType () == 0x81)
+        {
+            BoeReturnBitfieldPacket* returnBitfieldElement = (BoeReturnBitfieldPacket*) ((char*)buf + offset);
+
+            cdrArray ReturnBitfieldArray;
+            item.setInteger(MessageType, returnBitfieldElement->getMessageType ());
+            offset += sizeof (uint8_t);
+
+            int NumReturnBitfields = returnBitfieldElement->getNumOfReturnBitfield ();
+            item.setInteger(NumOfReturnBitfield, returnBitfieldElement->getNumOfReturnBitfield ());
+            offset += sizeof (uint8_t);
+
+            //copying bitfields to new temporary buffer
+            char* tmpbuf = new char[NumReturnBitfields];
+            memcpy ((void*)tmpbuf, (void*)buf+offset, NumReturnBitfields);
+
+            for (int i = 0; i < NumReturnBitfields; i++)
+            {
+                BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
+                item.setInteger (Bitfield, bitfieldElement->getBitfield ());
+                ReturnBitfieldArray.push_back(item);
+                offset += sizeof (BoeBitfieldPacket);
+            }
+            d.setArray(BitfieldSection, ReturnBitfieldArray);
+
+            memset (tmpbuf+NumReturnBitfields, 0, (ORDERMSG_BITFIELDS_SIZE - NumReturnBitfields));
+            OrderMsgBits*  mReturnBits = (OrderMsgBits*) tmpbuf;
+            if (mReturnBits == NULL)
+            {
+               if (NumReturnBitfields !=0)
+               {
+                   setLastError("Bitfields not correctly set");
+                   return GW_CODEC_ERROR;
+               }
+               else
+               {
+                   used += offset;
+                   return GW_CODEC_SUCCESS;
+               }
+            }
+            // TODO - Get optional fields
+        }
+    }
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -130,7 +322,7 @@ boeCodec::getNewOrder (cdr& d, const void* buf, size_t& used)
     
     d.setInteger (OrderQty, packet->getOrderQty ());
     offset += sizeof (uint32_t);
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -138,7 +330,7 @@ boeCodec::getNewOrder (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -151,7 +343,7 @@ boeCodec::getNewOrder (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (NEWORDER_BITFIELDS_SIZE - numBitfields));
     mNewOrderBits = (NewOrderBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mNewOrderBits == NULL)
     {
@@ -175,217 +367,217 @@ boeCodec::getNewOrder (cdr& d, const void* buf, size_t& used)
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mNewOrderBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mNewOrderBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mNewOrderBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mNewOrderBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mNewOrderBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mNewOrderBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mNewOrderBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mNewOrderBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mNewOrderBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mNewOrderBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mNewOrderBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mNewOrderBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mNewOrderBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mNewOrderBits->hasExpireTime)
     {
-        d.setInteger (ExpireTime, uint64_t(newBuf[offset]) );
+        d.setInteger (ExpireTime, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mNewOrderBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mNewOrderBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mNewOrderBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mNewOrderBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mNewOrderBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mNewOrderBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mNewOrderBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mNewOrderBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -399,7 +591,7 @@ boeCodec::getCancelOrder (cdr& d, const void* buf, size_t& used)
     
     d.setString (OrigClOrdID, packet->getOrigClOrdID ());
     offset += 20;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -407,7 +599,7 @@ boeCodec::getCancelOrder (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -420,7 +612,7 @@ boeCodec::getCancelOrder (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (CANCELORDER_BITFIELDS_SIZE - numBitfields));
     mCancelOrderBits = (CancelOrderBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mCancelOrderBits == NULL)
     {
@@ -444,7 +636,7 @@ boeCodec::getCancelOrder (cdr& d, const void* buf, size_t& used)
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -461,7 +653,7 @@ boeCodec::getModifyOrder (cdr& d, const void* buf, size_t& used)
     
     d.setString (OrigClOrdID, packet->getOrigClOrdID ());
     offset += 20;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -469,7 +661,7 @@ boeCodec::getModifyOrder (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -482,7 +674,7 @@ boeCodec::getModifyOrder (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (MODIFYORDER_BITFIELDS_SIZE - numBitfields));
     mModifyOrderBits = (ModifyOrderBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mModifyOrderBits == NULL)
     {
@@ -506,42 +698,42 @@ boeCodec::getModifyOrder (cdr& d, const void* buf, size_t& used)
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mModifyOrderBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mModifyOrderBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mModifyOrderBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mModifyOrderBits->hasCancelOrigOnReject)
     {
         d.setString (CancelOrigOnReject, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mModifyOrderBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -561,7 +753,7 @@ boeCodec::getTradeCaptureReport (cdr& d, const void* buf, size_t& used)
     
     d.setInteger (LastPx, packet->getLastPx ());
     offset += sizeof (uint64_t);
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -569,7 +761,7 @@ boeCodec::getTradeCaptureReport (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -582,7 +774,7 @@ boeCodec::getTradeCaptureReport (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (TRADECAPTUREREPORT_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureReportBits = (TradeCaptureReportBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureReportBits == NULL)
     {
@@ -609,252 +801,252 @@ boeCodec::getTradeCaptureReport (cdr& d, const void* buf, size_t& used)
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTransactionCategory)
     {
         d.setString (TransactionCategory, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradeTime)
     {
-        d.setInteger (TradeTime, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeTime, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradeReportTransType)
     {
-        d.setInteger (TradeReportTransType, uint8_t(newBuf[offset]) );
+        d.setInteger (TradeReportTransType, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradeID)
     {
-        d.setInteger (TradeID, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasVenueType)
     {
         d.setString (VenueType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradingSessionSubID)
     {
-        d.setInteger (TradingSessionSubID, uint8_t(newBuf[offset]) );
+        d.setInteger (TradingSessionSubID, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasMatchType)
     {
-        d.setInteger (MatchType, uint8_t(newBuf[offset]) );
+        d.setInteger (MatchType, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTrdSubType)
     {
-        d.setInteger (TrdSubType, uint8_t(newBuf[offset]) );
+        d.setInteger (TrdSubType, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasSecondaryTrdType)
     {
-        d.setInteger (SecondaryTrdType, uint8_t(newBuf[offset]) );
+        d.setInteger (SecondaryTrdType, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradePriceCondition)
     {
-        d.setInteger (TradePriceCondition, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePriceCondition, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasExecutionMethod)
     {
         d.setString (ExecutionMethod, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradeReportType)
     {
-        d.setInteger (TradeReportType, uint8_t(newBuf[offset]) );
+        d.setInteger (TradeReportType, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradeHandlingInstruction)
     {
-        d.setInteger (TradeHandlingInstruction, uint8_t(newBuf[offset]) );
+        d.setInteger (TradeHandlingInstruction, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradeLinkID)
     {
         d.setString (TradeLinkID, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasGrossTradeAmt)
     {
-        d.setInteger (GrossTradeAmt, uint64_t(newBuf[offset]) );
+        d.setInteger (GrossTradeAmt, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasTolerance)
     {
-        d.setInteger (Tolerance, uint16_t(newBuf[offset]) );
+        d.setInteger (Tolerance, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasSettlementPrice)
     {
-        d.setInteger (SettlementPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (SettlementPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasSettlementDate)
     {
-        d.setInteger (SettlementDate, uint64_t(newBuf[offset]) );
+        d.setInteger (SettlementDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasSettlementCurrency)
     {
         d.setString (SettlementCurrency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureReportBits->hasSettlementLocation)
     {
         d.setString (SettlementLocation, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -877,7 +1069,7 @@ boeCodec::getOrderAcknowledgement (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -885,7 +1077,7 @@ boeCodec::getOrderAcknowledgement (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -898,7 +1090,7 @@ boeCodec::getOrderAcknowledgement (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (ORDERACKNOWLEDGEMENT_BITFIELDS_SIZE - numBitfields));
     mOrderAcknowledgementBits = (OrderAcknowledgementBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderAcknowledgementBits == NULL)
     {
@@ -922,616 +1114,616 @@ boeCodec::getOrderAcknowledgement (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderAcknowledgementBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -1557,7 +1749,7 @@ boeCodec::getOrderRejected (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -1565,7 +1757,7 @@ boeCodec::getOrderRejected (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -1578,7 +1770,7 @@ boeCodec::getOrderRejected (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (ORDERREJECTED_BITFIELDS_SIZE - numBitfields));
     mOrderRejectedBits = (OrderRejectedBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderRejectedBits == NULL)
     {
@@ -1602,630 +1794,630 @@ boeCodec::getOrderRejected (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mOrderRejectedBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderRejectedBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderRejectedBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderRejectedBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderRejectedBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderRejectedBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderRejectedBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderRejectedBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderRejectedBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderRejectedBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderRejectedBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderRejectedBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderRejectedBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRejectedBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRejectedBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRejectedBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -2248,7 +2440,7 @@ boeCodec::getOrderModified (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -2256,7 +2448,7 @@ boeCodec::getOrderModified (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -2269,7 +2461,7 @@ boeCodec::getOrderModified (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (ORDERMODIFIED_BITFIELDS_SIZE - numBitfields));
     mOrderModifiedBits = (OrderModifiedBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderModifiedBits == NULL)
     {
@@ -2293,630 +2485,630 @@ boeCodec::getOrderModified (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mOrderModifiedBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderModifiedBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderModifiedBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderModifiedBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderModifiedBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderModifiedBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderModifiedBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderModifiedBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderModifiedBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderModifiedBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderModifiedBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderModifiedBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderModifiedBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderModifiedBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderModifiedBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderModifiedBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -2942,7 +3134,7 @@ boeCodec::getOrderRestated (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -2950,7 +3142,7 @@ boeCodec::getOrderRestated (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -2963,7 +3155,7 @@ boeCodec::getOrderRestated (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (ORDERRESTATED_BITFIELDS_SIZE - numBitfields));
     mOrderRestatedBits = (OrderRestatedBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderRestatedBits == NULL)
     {
@@ -2987,630 +3179,630 @@ boeCodec::getOrderRestated (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mOrderRestatedBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderRestatedBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderRestatedBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderRestatedBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderRestatedBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderRestatedBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderRestatedBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderRestatedBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderRestatedBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderRestatedBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderRestatedBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderRestatedBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderRestatedBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderRestatedBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderRestatedBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderRestatedBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -3636,7 +3828,7 @@ boeCodec::getUserModifyRejected (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -3644,7 +3836,7 @@ boeCodec::getUserModifyRejected (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -3657,7 +3849,7 @@ boeCodec::getUserModifyRejected (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (USERMODIFYREJECTED_BITFIELDS_SIZE - numBitfields));
     mUserModifyRejectedBits = (UserModifyRejectedBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mUserModifyRejectedBits == NULL)
     {
@@ -3681,630 +3873,630 @@ boeCodec::getUserModifyRejected (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mUserModifyRejectedBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mUserModifyRejectedBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -4327,7 +4519,7 @@ boeCodec::getOrderCancelled (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -4335,7 +4527,7 @@ boeCodec::getOrderCancelled (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -4348,7 +4540,7 @@ boeCodec::getOrderCancelled (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (ORDERCANCELLED_BITFIELDS_SIZE - numBitfields));
     mOrderCancelledBits = (OrderCancelledBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderCancelledBits == NULL)
     {
@@ -4372,630 +4564,630 @@ boeCodec::getOrderCancelled (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mOrderCancelledBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderCancelledBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderCancelledBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderCancelledBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderCancelledBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderCancelledBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderCancelledBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderCancelledBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderCancelledBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderCancelledBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderCancelledBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderCancelledBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderCancelledBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderCancelledBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderCancelledBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderCancelledBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -5021,7 +5213,7 @@ boeCodec::getCancelRejected (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -5029,7 +5221,7 @@ boeCodec::getCancelRejected (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -5042,7 +5234,7 @@ boeCodec::getCancelRejected (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (CANCELREJECTED_BITFIELDS_SIZE - numBitfields));
     mCancelRejectedBits = (CancelRejectedBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mCancelRejectedBits == NULL)
     {
@@ -5066,630 +5258,630 @@ boeCodec::getCancelRejected (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mCancelRejectedBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mCancelRejectedBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mCancelRejectedBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mCancelRejectedBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mCancelRejectedBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mCancelRejectedBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mCancelRejectedBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mCancelRejectedBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mCancelRejectedBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mCancelRejectedBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mCancelRejectedBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mCancelRejectedBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mCancelRejectedBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mCancelRejectedBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mCancelRejectedBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mCancelRejectedBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -5730,7 +5922,7 @@ boeCodec::getOrderExecution (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -5738,7 +5930,7 @@ boeCodec::getOrderExecution (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -5751,7 +5943,7 @@ boeCodec::getOrderExecution (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (ORDEREXECUTION_BITFIELDS_SIZE - numBitfields));
     mOrderExecutionBits = (OrderExecutionBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mOrderExecutionBits == NULL)
     {
@@ -5775,616 +5967,616 @@ boeCodec::getOrderExecution (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mOrderExecutionBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderExecutionBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderExecutionBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mOrderExecutionBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mOrderExecutionBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderExecutionBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderExecutionBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderExecutionBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mOrderExecutionBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mOrderExecutionBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderExecutionBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mOrderExecutionBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderExecutionBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mOrderExecutionBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mOrderExecutionBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mOrderExecutionBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -6434,7 +6626,7 @@ boeCodec::getTradeCancelCorrect (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -6442,7 +6634,7 @@ boeCodec::getTradeCancelCorrect (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -6455,7 +6647,7 @@ boeCodec::getTradeCancelCorrect (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (TRADECANCELCORRECT_BITFIELDS_SIZE - numBitfields));
     mTradeCancelCorrectBits = (TradeCancelCorrectBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCancelCorrectBits == NULL)
     {
@@ -6479,630 +6671,630 @@ boeCodec::getTradeCancelCorrect (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCancelCorrectBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     used += offset;
     return GW_CODEC_SUCCESS;
 }
@@ -7122,7 +7314,7 @@ boeCodec::getTradeCaptureReportAcknowledgement (cdr& d, const void* buf, size_t&
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -7130,7 +7322,7 @@ boeCodec::getTradeCaptureReportAcknowledgement (cdr& d, const void* buf, size_t&
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -7143,7 +7335,7 @@ boeCodec::getTradeCaptureReportAcknowledgement (cdr& d, const void* buf, size_t&
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTACKNOWLEDGEMENT_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureReportAcknowledgementBits = (TradeCaptureReportAcknowledgementBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureReportAcknowledgementBits == NULL)
     {
@@ -7167,632 +7359,632 @@ boeCodec::getTradeCaptureReportAcknowledgement (cdr& d, const void* buf, size_t&
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportAcknowledgementBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
+
     
-    
-    d.setInteger (NoSides, uint8_t(newBuf[offset]) );
+    d.setInteger (NoSides, *(uint8_t*)(newBuf + offset) );
     offset += sizeof (uint8_t);
     
     
@@ -7803,7 +7995,6 @@ boeCodec::getTradeCaptureReportAcknowledgement (cdr& d, const void* buf, size_t&
     {
         cdr item;
         BoeSideGroupPacket* packet128 = (BoeSideGroupPacket*)((char*)buf + offset);
-        offset += sizeof (BoeSideGroupPacket);
 
         item.setInteger (Side, packet128->getSide ());
         offset += sizeof (uint8_t);
@@ -7849,7 +8040,7 @@ boeCodec::getTradeCaptureReportReject (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -7857,7 +8048,7 @@ boeCodec::getTradeCaptureReportReject (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -7870,7 +8061,7 @@ boeCodec::getTradeCaptureReportReject (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTREJECT_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureReportRejectBits = (TradeCaptureReportRejectBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureReportRejectBits == NULL)
     {
@@ -7894,632 +8085,632 @@ boeCodec::getTradeCaptureReportReject (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportRejectBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
+
     
-    
-    d.setInteger (NoSides, uint8_t(newBuf[offset]) );
+    d.setInteger (NoSides, *(uint8_t*)(newBuf + offset) );
     offset += sizeof (uint8_t);
     
     
@@ -8530,7 +8721,6 @@ boeCodec::getTradeCaptureReportReject (cdr& d, const void* buf, size_t& used)
     {
         cdr item;
         BoeSideGroupPacket* packet129 = (BoeSideGroupPacket*)((char*)buf + offset);
-        offset += sizeof (BoeSideGroupPacket);
 
         item.setInteger (Side, packet129->getSide ());
         offset += sizeof (uint8_t);
@@ -8582,7 +8772,7 @@ boeCodec::getTradeCaptureConfirm (cdr& d, const void* buf, size_t& used)
     
     d.setString (ContraBroker, packet->getContraBroker ());
     offset += 4;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -8590,7 +8780,7 @@ boeCodec::getTradeCaptureConfirm (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -8603,7 +8793,7 @@ boeCodec::getTradeCaptureConfirm (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (TRADECAPTURECONFIRM_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureConfirmBits = (TradeCaptureConfirmBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureConfirmBits == NULL)
     {
@@ -8627,632 +8817,632 @@ boeCodec::getTradeCaptureConfirm (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureConfirmBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
+
     
-    
-    d.setInteger (NoSides, uint8_t(newBuf[offset]) );
+    d.setInteger (NoSides, *(uint8_t*)(newBuf + offset) );
     offset += sizeof (uint8_t);
     
     
@@ -9263,7 +9453,6 @@ boeCodec::getTradeCaptureConfirm (cdr& d, const void* buf, size_t& used)
     {
         cdr item;
         BoeSideGroupPacket* packet132 = (BoeSideGroupPacket*)((char*)buf + offset);
-        offset += sizeof (BoeSideGroupPacket);
 
         item.setInteger (Side, packet132->getSide ());
         offset += sizeof (uint8_t);
@@ -9324,7 +9513,7 @@ boeCodec::getTradeCaptureReportDecline (cdr& d, const void* buf, size_t& used)
     
     d.setString (ReservedInternal, packet->getReservedInternal ());
     offset += 1;
-     
+    
     int numBitfields = packet->getNumberOfBitfields ();
     d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
     offset += sizeof (uint8_t);
@@ -9332,7 +9521,7 @@ boeCodec::getTradeCaptureReportDecline (cdr& d, const void* buf, size_t& used)
     //copying bitfields to new temporary buffer
     char* tmpbuf = new char[numBitfields];
     memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-    
+
     cdrArray BitfieldArray;
     for (int i = 0; i < numBitfields; i++)
     {
@@ -9345,7 +9534,7 @@ boeCodec::getTradeCaptureReportDecline (cdr& d, const void* buf, size_t& used)
     //setting the rest of the remaining bitfields to zero
     memset (tmpbuf+numBitfields, 0, (TRADECAPTUREREPORTDECLINE_BITFIELDS_SIZE - numBitfields));
     mTradeCaptureReportDeclineBits = (TradeCaptureReportDeclineBits*) tmpbuf;
-    
+
     d.setArray(BitfieldSection, BitfieldArray);
     if (mTradeCaptureReportDeclineBits == NULL)
     {
@@ -9369,632 +9558,632 @@ boeCodec::getTradeCaptureReportDecline (cdr& d, const void* buf, size_t& used)
         d.setString (Side, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasPegDifference)
     {
-        d.setInteger (PegDifference, uint64_t(newBuf[offset]) );
+        d.setInteger (PegDifference, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasPrice)
     {
-        d.setInteger (Price, uint64_t(newBuf[offset]) );
+        d.setInteger (Price, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasExecInst)
     {
         d.setString (ExecInst, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasOrdType)
     {
         d.setString (OrdType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasTimeInForce)
     {
         d.setString (TimeInForce, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasMinQty)
     {
-        d.setInteger (MinQty, uint32_t(newBuf[offset]) );
+        d.setInteger (MinQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasSymbol)
     {
         d.setString (Symbol, getStringField (newBuf, 8, offset) );
         offset += 8;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasSymbolSfx)
     {
-        d.setInteger (SymbolSfx, uint8_t(newBuf[offset]) );
+        d.setInteger (SymbolSfx, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCurrency)
     {
         d.setString (Currency, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasIDSource)
     {
         d.setString (IDSource, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasSecurityID)
     {
         d.setString (SecurityID, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasSecurityExchange)
     {
         d.setString (SecurityExchange, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCapacity)
     {
         d.setString (Capacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasAccount)
     {
         d.setString (Account, getStringField (newBuf, 16, offset) );
         offset += 16;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasClearingFirm)
     {
         d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasClearingAccount)
     {
         d.setString (ClearingAccount, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasDisplayIndicator)
     {
         d.setString (DisplayIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasMaxFloor)
     {
-        d.setInteger (MaxFloor, uint32_t(newBuf[offset]) );
+        d.setInteger (MaxFloor, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasOrderQty)
     {
-        d.setInteger (OrderQty, uint32_t(newBuf[offset]) );
+        d.setInteger (OrderQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasPreventParticipantMatch)
     {
         d.setString (PreventParticipantMatch, getStringField (newBuf, 3, offset) );
         offset += 3;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCorrectedSize)
     {
-        d.setInteger (CorrectedSize, uint32_t(newBuf[offset]) );
+        d.setInteger (CorrectedSize, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasOrigClOrdID)
     {
         d.setString (OrigClOrdID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasLeavesQty)
     {
-        d.setInteger (LeavesQty, uint32_t(newBuf[offset]) );
+        d.setInteger (LeavesQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasLastShares)
     {
-        d.setInteger (LastShares, uint32_t(newBuf[offset]) );
+        d.setInteger (LastShares, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasDisplayPrice)
     {
-        d.setInteger (DisplayPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (DisplayPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasWorkingPrice)
     {
-        d.setInteger (WorkingPrice, uint64_t(newBuf[offset]) );
+        d.setInteger (WorkingPrice, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasBaseLiquidityIndicator)
     {
         d.setString (BaseLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasSecondaryOrderID)
     {
-        d.setInteger (SecondaryOrderID, uint64_t(newBuf[offset]) );
+        d.setInteger (SecondaryOrderID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCcp)
     {
         d.setString (Ccp, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasContraCapacity)
     {
         d.setString (ContraCapacity, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasAttributedQuote)
     {
-        d.setInteger (AttributedQuote, uint8_t(newBuf[offset]) );
+        d.setInteger (AttributedQuote, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasBulkOrderIDs)
     {
-        d.setInteger (BulkOrderIDs, uint64_t(newBuf[offset]) );
+        d.setInteger (BulkOrderIDs, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasBulkRejectReasons)
     {
         d.setString (BulkRejectReasons, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasPartyRole)
     {
         d.setString (PartyRole, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasSubLiquidityIndicator)
     {
         d.setString (SubLiquidityIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasTradeReportTypeReturn)
     {
-        d.setInteger (TradeReportTypeReturn, uint16_t(newBuf[offset]) );
+        d.setInteger (TradeReportTypeReturn, *(uint16_t*)(newBuf + offset) );
         offset += sizeof (uint16_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasTradePublishIndReturn)
     {
-        d.setInteger (TradePublishIndReturn, uint8_t(newBuf[offset]) );
+        d.setInteger (TradePublishIndReturn, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasText)
     {
         d.setString (Text, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasBidPx)
     {
-        d.setInteger (BidPx, uint64_t(newBuf[offset]) );
+        d.setInteger (BidPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasLargeSize)
     {
-        d.setInteger (LargeSize, uint64_t(newBuf[offset]) );
+        d.setInteger (LargeSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasLastMkt)
     {
         d.setString (LastMkt, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasFeeCode)
     {
         d.setString (FeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasEchoText)
     {
         d.setString (EchoText, getStringField (newBuf, 60, offset) );
         offset += 60;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasStopPx)
     {
-        d.setInteger (StopPx, uint64_t(newBuf[offset]) );
+        d.setInteger (StopPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasRoutingInst)
     {
         d.setString (RoutingInst, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasRoutStrategy)
     {
         d.setString (RoutStrategy, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasExDestination)
     {
         d.setString (ExDestination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasTradeReportRefID)
     {
         d.setString (TradeReportRefID, getStringField (newBuf, 20, offset) );
         offset += 20;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasMarketingFeeCode)
     {
         d.setString (MarketingFeeCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasTargetPartyID)
     {
         d.setString (TargetPartyID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasAuctionID)
     {
-        d.setInteger (AuctionID, uint64_t(newBuf[offset]) );
+        d.setInteger (AuctionID, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasOrderCategory)
     {
-        d.setInteger (OrderCategory, uint8_t(newBuf[offset]) );
+        d.setInteger (OrderCategory, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasLiquidityProvision)
     {
         d.setString (LiquidityProvision, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCmtaNumber)
     {
-        d.setInteger (CmtaNumber, uint32_t(newBuf[offset]) );
+        d.setInteger (CmtaNumber, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCrossType)
     {
         d.setString (CrossType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCrossPrioritization)
     {
         d.setString (CrossPrioritization, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasAllocQty)
     {
-        d.setInteger (AllocQty, uint32_t(newBuf[offset]) );
+        d.setInteger (AllocQty, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasRoutingFirmID)
     {
         d.setString (RoutingFirmID, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasWaiverType)
     {
         d.setString (WaiverType, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCrossExclusionIndicator)
     {
         d.setString (CrossExclusionIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasPriceFormation)
     {
         d.setString (PriceFormation, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasClientQualifiedRole)
     {
-        d.setInteger (ClientQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ClientQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasClientID)
     {
-        d.setInteger (ClientID, uint32_t(newBuf[offset]) );
+        d.setInteger (ClientID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasInvestorID)
     {
-        d.setInteger (InvestorID, uint32_t(newBuf[offset]) );
+        d.setInteger (InvestorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasExecutorID)
     {
-        d.setInteger (ExecutorID, uint32_t(newBuf[offset]) );
+        d.setInteger (ExecutorID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasOrderOrigination)
     {
         d.setString (OrderOrigination, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasAlgorithmicIndicator)
     {
         d.setString (AlgorithmicIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasDeferralReason)
     {
         d.setString (DeferralReason, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasInvestorQualifiedRole)
     {
-        d.setInteger (InvestorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (InvestorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasExecutorQualifiedRole)
     {
-        d.setInteger (ExecutorQualifiedRole, uint8_t(newBuf[offset]) );
+        d.setInteger (ExecutorQualifiedRole, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCtiCode)
     {
         d.setString (CtiCode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasManualOrderIndicator)
     {
-        d.setInteger (ManualOrderIndicator, uint8_t(newBuf[offset]) );
+        d.setInteger (ManualOrderIndicator, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasTradeDate)
     {
-        d.setInteger (TradeDate, uint64_t(newBuf[offset]) );
+        d.setInteger (TradeDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasVariancePrice)
     {
-        d.setInteger (VariancePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (VariancePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasVarianceSize)
     {
-        d.setInteger (VarianceSize, uint64_t(newBuf[offset]) );
+        d.setInteger (VarianceSize, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasOrigTASPrice)
     {
-        d.setInteger (OrigTASPrice, uint8_t(newBuf[offset]) );
+        d.setInteger (OrigTASPrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasCumQty)
     {
-        d.setInteger (CumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (CumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasDayOrderQty)
     {
-        d.setInteger (DayOrderQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayOrderQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasDayCumQty)
     {
-        d.setInteger (DayCumQty, uint8_t(newBuf[offset]) );
+        d.setInteger (DayCumQty, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasAvgPx)
     {
-        d.setInteger (AvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (AvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasDayAvgPx)
     {
-        d.setInteger (DayAvgPx, uint64_t(newBuf[offset]) );
+        d.setInteger (DayAvgPx, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasLegCFICode)
     {
         d.setString (LegCFICode, getStringField (newBuf, 2, offset) );
         offset += 2;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasLegMaturityDate)
     {
-        d.setInteger (LegMaturityDate, uint64_t(newBuf[offset]) );
+        d.setInteger (LegMaturityDate, *(uint64_t*)(newBuf + offset) );
         offset += sizeof (uint64_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasLegStrikePrice)
     {
-        d.setInteger (LegStrikePrice, uint8_t(newBuf[offset]) );
+        d.setInteger (LegStrikePrice, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasSecondaryExecID)
     {
-        d.setInteger (SecondaryExecID, uint32_t(newBuf[offset]) );
+        d.setInteger (SecondaryExecID, *(uint32_t*)(newBuf + offset) );
         offset += sizeof (uint32_t);
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasUsername)
     {
         d.setString (Username, getStringField (newBuf, 4, offset) );
         offset += 4;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasTradeReportingIndicator)
     {
         d.setString (TradeReportingIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasTradePublishIndicator)
     {
         d.setString (TradePublishIndicator, getStringField (newBuf, 1, offset) );
         offset += 1;
     }
-    
+
     
     if (mTradeCaptureReportDeclineBits->hasReportTime)
     {
-        d.setInteger (ReportTime, uint8_t(newBuf[offset]) );
+        d.setInteger (ReportTime, *(uint8_t*)(newBuf + offset) );
         offset += sizeof (uint8_t);
     }
+
     
-    
-    d.setInteger (NoSides, uint8_t(newBuf[offset]) );
+    d.setInteger (NoSides, *(uint8_t*)(newBuf + offset) );
     offset += sizeof (uint8_t);
     
     
@@ -10005,7 +10194,6 @@ boeCodec::getTradeCaptureReportDecline (cdr& d, const void* buf, size_t& used)
     {
         cdr item;
         BoeSideGroupPacket* packet134 = (BoeSideGroupPacket*)((char*)buf + offset);
-        offset += sizeof (BoeSideGroupPacket);
 
         item.setInteger (Side, packet134->getSide ());
         offset += sizeof (uint8_t);
@@ -10030,12 +10218,114 @@ boeCodec::getTradeCaptureReportDecline (cdr& d, const void* buf, size_t& used)
     return GW_CODEC_SUCCESS;
 }
 
+codecState
+boeCodec::getPurgeOrder (cdr& d, const void* buf, size_t& used)
+{
+    d.setString (MessageName, "PurgeOrder");
+    size_t offset = sizeof (BoeHeaderPacket);
+    boePurgeOrderPacket* packet = (boePurgeOrderPacket*)((char*)buf + offset);
+    
+    d.setString (MassCancel, packet->getMassCancel ());
+    offset += 1;
+    
+    int numBitfields = packet->getNumberOfBitfields ();
+    d.setInteger (NumberOfBitfields, packet->getNumberOfBitfields ());
+    offset += sizeof (uint8_t);
+    
+    //copying bitfields to new temporary buffer
+    char* tmpbuf = new char[numBitfields];
+    memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
+
+    cdrArray BitfieldArray;
+    for (int i = 0; i < numBitfields; i++)
+    {
+        cdr item;
+        BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
+        item.setInteger (Bitfield, bitfieldElement->getBitfield ());
+        BitfieldArray.push_back(item);
+        offset += sizeof (BoeBitfieldPacket);
+    }
+    //setting the rest of the remaining bitfields to zero
+    memset (tmpbuf+numBitfields, 0, (PURGEORDER_BITFIELDS_SIZE - numBitfields));
+    mPurgeOrderBits = (PurgeOrderBits*) tmpbuf;
+
+    d.setArray(BitfieldSection, BitfieldArray);
+    if (mPurgeOrderBits == NULL)
+    {
+       if (numBitfields !=0)
+       {
+           setLastError("Bitfields not correctly set");
+           return GW_CODEC_ERROR;
+       }
+       else
+       {
+           used += offset;
+           return GW_CODEC_SUCCESS;
+       }
+    }
+    //Get optional fields
+    char* newBuf = (char*) buf;
+
+    
+    if (mPurgeOrderBits->hasClearingFirm)
+    {
+        d.setString (ClearingFirm, getStringField (newBuf, 4, offset) );
+        offset += 4;
+    }
+
+    
+    d.setInteger (NumberOfCustomGroupIDs, packet->getNumberOfCustomGroupIDs ());
+    offset += sizeof (uint8_t);
+    
+    int numInGroup = 0;
+    d.getInteger (NumberOfCustomGroupIDs, numInGroup) ;
+    cdrArray CustomGroupIDArray;
+    for (int i = 0; i < numInGroup; i++)
+    {
+        cdr item;
+        BoeCustomGroupIDPacket* packet13 = (BoeCustomGroupIDPacket*)((char*)buf + offset);
+
+        item.setInteger (CustomGroupID, packet13->getCustomGroupID ());
+        offset += sizeof (uint16_t);
+
+        CustomGroupIDArray.push_back (item);
+    }
+    d.setArray (CustomGroupIDSection, CustomGroupIDArray);
+
+    used += offset;
+    return GW_CODEC_SUCCESS;
+}
+
+codecState
+boeCodec::getPurgeRejected (cdr& d, const void* buf, size_t& used)
+{
+    d.setString (MessageName, "PurgeRejected");
+    size_t offset = sizeof (BoeHeaderPacket);
+    boePurgeRejectedPacket* packet = (boePurgeRejectedPacket*)((char*)buf + offset);
+    
+    d.setInteger (TransactTime, packet->getTransactTime ());
+    offset += sizeof (uint64_t);
+    
+    d.setInteger (PurgeRejectReason, packet->getPurgeRejectReason ());
+    offset += sizeof (uint8_t);
+    
+    d.setString (PurgeRejectText, packet->getPurgeRejectText ());
+    offset += 60;
+    
+    d.setString (ReservedInternal, packet->getReservedInternal ());
+    offset += 1;
+    used += offset;
+    return GW_CODEC_SUCCESS;
+}
+
 
 codecState
 boeCodec::putLoginRequest (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeLoginRequestPacket* packet = (boeLoginRequestPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeLoginRequestPacket))
         return GW_CODEC_SHORT;
@@ -10068,14 +10358,125 @@ boeCodec::putLoginRequest (const cdr& d, void* buf, size_t len, size_t& used)
     packet->setPassword (password);
     offset += 10;
     
-    int8_t numberofparamgroups;
+    uint8_t numberofparamgroups;
     if (!d.getInteger (NumberOfParamGroups, numberofparamgroups))
     {
         setLastError ("NumberOfParamGroups missing or not integer");
         return GW_CODEC_ERROR;
     }
     packet->setNumberOfParamGroups (numberofparamgroups);
-    offset += sizeof (int8_t);
+    offset += sizeof (uint8_t);
+    int NumParamGroups = numberofparamgroups;
+
+    for (int i = 0; i < NumParamGroups; i++)
+    {
+        cdr item;
+        BoeParamGroupsPacket* paramGroupsElement = (BoeParamGroupsPacket*) ((char*)buf + offset);
+
+        uint16_t paramGroupLength;
+        if (!item.getInteger (ParamGroupLength, paramGroupLength))
+        {
+            setLastError ("ParamGroupLength missing or not integer");
+            return GW_CODEC_ERROR;
+        }
+        paramGroupsElement->setParamGroupLength (paramGroupLength);
+        offset += sizeof (uint16_t);
+        
+        uint8_t paramGroupType;
+        if (!item.getInteger (ParamGroupType, paramGroupType))
+        {
+            setLastError ("ParamGroupType missing or not integer");
+            return GW_CODEC_ERROR;
+        }
+        paramGroupsElement->setParamGroupType (paramGroupType);
+        offset += sizeof (uint8_t);
+                
+        if(paramGroupType == 0x80)
+        {
+            BoeUnitSequencePacket* unitSequenceElement = (BoeUnitSequencePacket*) ((char*)buf + offset);
+            cdrArray UnitSequenceParamGroupArray;
+            
+            uint8_t noUnspecifiedUnitReplay;
+            if (!item.getInteger (NoUnspecifiedUnitReplay, noUnspecifiedUnitReplay))
+            {
+                setLastError ("NoUnspecifiedUnitReplay missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            unitSequenceElement->setNoUnspecifiedUnitReplay (noUnspecifiedUnitReplay);
+            offset += sizeof (uint8_t);
+            
+            uint8_t numOfUnits;
+            if (!item.getInteger (NumOfUnits, numOfUnits))
+            {
+                setLastError ("NumOfUnits missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            unitSequenceElement->setNumOfUnits (numOfUnits);
+            offset += sizeof (uint8_t);
+            
+            cdrArray UnitGroupArray;
+            for (int i = 0; i < numOfUnits; i++)
+            {
+                cdr unitGroupItem;
+                BoeUnitGroupPacket* unitGroupElement = (BoeUnitGroupPacket*) ((char*)buf + offset);
+
+                uint8_t unitNumber;
+                if (!unitGroupItem.getInteger (UnitNumber, unitNumber))
+                {
+                    setLastError ("UnitNumber missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                unitGroupElement->setUnitNumber (unitNumber);
+                offset += sizeof (uint8_t);
+            
+                uint64_t unitSequence;
+                if (!unitGroupItem.getInteger (UnitSequence, unitSequence))
+                {
+                    setLastError ("UnitSequence missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                unitGroupElement->setUnitSequence (unitSequence);
+                offset += sizeof (uint64_t);
+            }
+        }
+        else if(paramGroupType == 0x81)
+        {
+            BoeReturnBitfieldPacket* returnBitfieldElement = (BoeReturnBitfieldPacket*) ((char*)buf + offset);
+            
+            cdrArray ReturnBitfieldArray;
+            
+            uint8_t messageType;
+            if (!item.getInteger (MessageType, messageType))
+            {
+                setLastError ("MessageType missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            returnBitfieldElement->setMessageType (messageType);
+            offset += sizeof (uint8_t);
+            
+            uint8_t numReturnBitfields;
+            if (!item.getInteger (NumOfReturnBitfield, numReturnBitfields))
+            {
+                setLastError ("NumReturnBitfields missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            returnBitfieldElement->setNumOfReturnBitfield (numReturnBitfields);
+            offset += sizeof (uint8_t);
+            
+            for (int i = 0; i < numReturnBitfields; i++)
+            {
+                uint8_t returnBitfield;
+                if (!item.getInteger (ReturnBitfield, returnBitfield))
+                {
+                    setLastError ("ReturnBitfield missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                returnBitfieldElement->setReturnBitfield (returnBitfield);
+                offset += sizeof (uint8_t);
+            }
+            //TODO - set Optional fields
+        }
+    }
     used += offset;
 
     return GW_CODEC_SUCCESS;
@@ -10086,6 +10487,8 @@ boeCodec::putLoginResponse (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeLoginResponsePacket* packet = (boeLoginResponsePacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeLoginResponsePacket))
         return GW_CODEC_SHORT;
@@ -10135,6 +10538,157 @@ boeCodec::putLoginResponse (const cdr& d, void* buf, size_t len, size_t& used)
     }
     packet->setNumberOfUnits (numberofunits);
     offset += sizeof (uint8_t);
+    
+    if (d.getArraySize (UnitGroupSection) > 0)
+    {
+        cdrArray* UnitGroupArray = NULL;
+        d.getArray (UnitGroupSection, (const cdrArray**)(&UnitGroupArray));
+        for (cdrArray::iterator it = UnitGroupArray->begin(); it != UnitGroupArray->end(); ++it)
+        {
+            cdr& item = *it;
+            BoeUnitGroupPacket* unitgroupElement = (BoeUnitGroupPacket*) ((char*)buf + offset);
+
+            uint8_t unitnumber;
+            if (!item.getInteger (UnitNumber, unitnumber))
+            {
+                setLastError ("UnitNumber missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            unitgroupElement->setUnitNumber (unitnumber);
+            offset += sizeof (uint8_t);
+
+            uint32_t unitsequence;
+            if (!item.getInteger (UnitSequence, unitsequence))
+            {
+                setLastError ("UnitSequence missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            unitgroupElement->setUnitSequence (unitsequence);
+            offset += sizeof (uint32_t);
+
+        }
+    }
+    
+    uint8_t numberofparamgroups;
+    if (!d.getInteger (NumberOfParamGroups, numberofparamgroups))
+    {
+        setLastError ("NumberOfParamGroups missing or not integer");
+        return GW_CODEC_ERROR;
+    }
+    packet->setNumberOfParamGroups (numberofparamgroups);
+    offset += sizeof (uint8_t);
+    
+    int NumParamGroups = numberofparamgroups;
+
+    for (int i = 0; i < NumParamGroups; i++)
+    {
+        cdr item;
+        BoeParamGroupsPacket* paramGroupsElement = (BoeParamGroupsPacket*) ((char*)buf + offset);
+
+        uint16_t paramGroupLength;
+        if (!item.getInteger (ParamGroupLength, paramGroupLength))
+        {
+            setLastError ("ParamGroupLength missing or not integer");
+            return GW_CODEC_ERROR;
+        }
+        paramGroupsElement->setParamGroupLength (paramGroupLength);
+        offset += sizeof (uint16_t);
+        
+        uint8_t paramGroupType;
+        if (!item.getInteger (ParamGroupType, paramGroupType))
+        {
+            setLastError ("ParamGroupType missing or not integer");
+            return GW_CODEC_ERROR;
+        }
+        paramGroupsElement->setParamGroupType (paramGroupType);
+        offset += sizeof (uint8_t);
+                
+        if(paramGroupType == 0x80)
+        {
+            BoeUnitSequencePacket* unitSequenceElement = (BoeUnitSequencePacket*) ((char*)buf + offset);
+            cdrArray UnitSequenceParamGroupArray;
+            
+            uint8_t noUnspecifiedUnitReplay;
+            if (!item.getInteger (NoUnspecifiedUnitReplay, noUnspecifiedUnitReplay))
+            {
+                setLastError ("NoUnspecifiedUnitReplay missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            unitSequenceElement->setNoUnspecifiedUnitReplay (noUnspecifiedUnitReplay);
+            offset += sizeof (uint8_t);
+            
+            uint8_t numOfUnits;
+            if (!item.getInteger (NumOfUnits, numOfUnits))
+            {
+                setLastError ("NumOfUnits missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            unitSequenceElement->setNumOfUnits (numOfUnits);
+            offset += sizeof (uint8_t);
+            
+            cdrArray UnitGroupArray;
+            for (int i = 0; i < numOfUnits; i++)
+            {
+                cdr unitGroupItem;
+                BoeUnitGroupPacket* unitGroupElement = (BoeUnitGroupPacket*) ((char*)buf + offset);
+
+                uint8_t unitNumber;
+                if (!unitGroupItem.getInteger (UnitNumber, unitNumber))
+                {
+                    setLastError ("UnitNumber missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                unitGroupElement->setUnitNumber (unitNumber);
+                offset += sizeof (uint8_t);
+            
+                uint64_t unitSequence;
+                if (!unitGroupItem.getInteger (UnitSequence, unitSequence))
+                {
+                    setLastError ("UnitSequence missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                unitGroupElement->setUnitSequence (unitSequence);
+                offset += sizeof (uint64_t);
+            }
+        }
+        else if(paramGroupType == 0x81)
+        {
+            BoeReturnBitfieldPacket* returnBitfieldElement = (BoeReturnBitfieldPacket*) ((char*)buf + offset);
+            
+            cdrArray ReturnBitfieldArray;
+            
+            uint8_t messageType;
+            if (!item.getInteger (MessageType, messageType))
+            {
+                setLastError ("MessageType missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            returnBitfieldElement->setMessageType (messageType);
+            offset += sizeof (uint8_t);
+            
+            uint8_t numReturnBitfields;
+            if (!item.getInteger (NumOfReturnBitfield, numReturnBitfields))
+            {
+                setLastError ("NumReturnBitfields missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            returnBitfieldElement->setNumOfReturnBitfield (numReturnBitfields);
+            offset += sizeof (uint8_t);
+            
+            for (int i = 0; i < numReturnBitfields; i++)
+            {
+                uint8_t returnBitfield;
+                if (!item.getInteger (ReturnBitfield, returnBitfield))
+                {
+                    setLastError ("ReturnBitfield missing or not integer");
+                    return GW_CODEC_ERROR;
+                }
+                returnBitfieldElement->setReturnBitfield (returnBitfield);
+                offset += sizeof (uint8_t);
+            }
+            //TODO - set Optional fields
+        }
+    }
     used += offset;
 
     return GW_CODEC_SUCCESS;
@@ -10145,6 +10699,8 @@ boeCodec::putLogoutResponse (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeLogoutResponsePacket* packet = (boeLogoutResponsePacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeLogoutResponsePacket))
         return GW_CODEC_SHORT;
@@ -10195,6 +10751,8 @@ boeCodec::putServerHeartbeat (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
 
+    char *tmpBuf = (char *)buf;
+
     if (len < sizeof (boeServerHeartbeatPacket))
         return GW_CODEC_SHORT;
 
@@ -10207,6 +10765,8 @@ codecState
 boeCodec::putClientHeartbeat (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeClientHeartbeatPacket))
         return GW_CODEC_SHORT;
@@ -10221,6 +10781,8 @@ boeCodec::putReplayComplete (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
 
+    char *tmpBuf = (char *)buf;
+
     if (len < sizeof (boeReplayCompletePacket))
         return GW_CODEC_SHORT;
 
@@ -10234,6 +10796,8 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeNewOrderPacket* packet = (boeNewOrderPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeNewOrderPacket))
         return GW_CODEC_SHORT;
@@ -10286,11 +10850,12 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
 
             uint8_t bitfield;
             if (!item.getInteger (Bitfield, bitfield))
-                bitfieldElement->setBitfield (UINT8_MAX);
-            else
-                bitfieldElement->setBitfield (bitfield);
+            {
+                setLastError ("Bitfield missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            bitfieldElement->setBitfield (bitfield);
             offset += sizeof (uint8_t);
-            
 
         }
     }
@@ -10303,7 +10868,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -10316,7 +10881,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -10329,7 +10894,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -10342,7 +10907,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -10355,7 +10920,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -10368,7 +10933,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -10381,7 +10946,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -10394,7 +10959,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -10407,7 +10972,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -10420,7 +10985,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -10433,7 +10998,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -10446,7 +11011,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -10459,7 +11024,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -10472,7 +11037,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -10485,7 +11050,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -10498,7 +11063,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -10511,7 +11076,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -10524,7 +11089,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -10537,7 +11102,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -10550,7 +11115,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -10563,7 +11128,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExpireTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExpireTime (expiretime);
+       memcpy (tmpBuf + offset, &expiretime, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -10576,7 +11141,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -10589,7 +11154,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -10602,7 +11167,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -10615,7 +11180,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -10628,7 +11193,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -10641,7 +11206,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -10654,7 +11219,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -10667,7 +11232,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -10680,7 +11245,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -10693,7 +11258,7 @@ boeCodec::putNewOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -10707,6 +11272,8 @@ boeCodec::putCancelOrder (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeCancelOrderPacket* packet = (boeCancelOrderPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeCancelOrderPacket))
         return GW_CODEC_SHORT;
@@ -10758,7 +11325,7 @@ boeCodec::putCancelOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -10772,6 +11339,8 @@ boeCodec::putModifyOrder (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeModifyOrderPacket* packet = (boeModifyOrderPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeModifyOrderPacket))
         return GW_CODEC_SHORT;
@@ -10832,7 +11401,7 @@ boeCodec::putModifyOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -10845,7 +11414,7 @@ boeCodec::putModifyOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -10858,7 +11427,7 @@ boeCodec::putModifyOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -10871,7 +11440,7 @@ boeCodec::putModifyOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -10884,7 +11453,7 @@ boeCodec::putModifyOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CancelOrigOnReject missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCancelOrigOnReject (cancelorigonreject);
+       memcpy (tmpBuf + offset, cancelorigonreject.c_str(), 1);
        offset += 1;
     }
     
@@ -10897,7 +11466,7 @@ boeCodec::putModifyOrder (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -10911,6 +11480,8 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeTradeCaptureReportPacket* packet = (boeTradeCaptureReportPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeTradeCaptureReportPacket))
         return GW_CODEC_SHORT;
@@ -10989,7 +11560,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -11002,7 +11573,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -11015,7 +11586,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -11028,7 +11599,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -11041,7 +11612,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -11054,7 +11625,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -11067,7 +11638,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -11080,7 +11651,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -11093,7 +11664,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TransactionCategory missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTransactionCategory (transactioncategory);
+       memcpy (tmpBuf + offset, transactioncategory.c_str(), 1);
        offset += 1;
     }
     
@@ -11106,7 +11677,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeTime (tradetime);
+       memcpy (tmpBuf + offset, &tradetime, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11119,7 +11690,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -11132,7 +11703,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportTransType missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTransType (tradereporttranstype);
+       memcpy (tmpBuf + offset, &tradereporttranstype, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11145,7 +11716,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeID (tradeid);
+       memcpy (tmpBuf + offset, &tradeid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11158,7 +11729,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("VenueType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setVenueType (venuetype);
+       memcpy (tmpBuf + offset, venuetype.c_str(), 1);
        offset += 1;
     }
     
@@ -11171,7 +11742,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradingSessionSubID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradingSessionSubID (tradingsessionsubid);
+       memcpy (tmpBuf + offset, &tradingsessionsubid, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11184,7 +11755,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("MatchType missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMatchType (matchtype);
+       memcpy (tmpBuf + offset, &matchtype, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11197,7 +11768,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TrdSubType missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTrdSubType (trdsubtype);
+       memcpy (tmpBuf + offset, &trdsubtype, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11210,7 +11781,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecondaryTrdType missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryTrdType (secondarytrdtype);
+       memcpy (tmpBuf + offset, &secondarytrdtype, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11223,7 +11794,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradePriceCondition missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePriceCondition (tradepricecondition);
+       memcpy (tmpBuf + offset, &tradepricecondition, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11236,7 +11807,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11249,7 +11820,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExecutionMethod missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutionMethod (executionmethod);
+       memcpy (tmpBuf + offset, executionmethod.c_str(), 1);
        offset += 1;
     }
     
@@ -11262,7 +11833,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportType missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportType (tradereporttype);
+       memcpy (tmpBuf + offset, &tradereporttype, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11275,7 +11846,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeHandlingInstruction missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeHandlingInstruction (tradehandlinginstruction);
+       memcpy (tmpBuf + offset, &tradehandlinginstruction, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11288,7 +11859,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeLinkID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeLinkID (tradelinkid);
+       memcpy (tmpBuf + offset, tradelinkid.c_str(), 1);
        offset += 1;
     }
     
@@ -11301,7 +11872,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -11314,7 +11885,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("GrossTradeAmt missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setGrossTradeAmt (grosstradeamt);
+       memcpy (tmpBuf + offset, &grosstradeamt, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11327,7 +11898,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Tolerance missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTolerance (tolerance);
+       memcpy (tmpBuf + offset, &tolerance, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -11340,7 +11911,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11353,7 +11924,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SettlementPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSettlementPrice (settlementprice);
+       memcpy (tmpBuf + offset, &settlementprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11366,7 +11937,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SettlementDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSettlementDate (settlementdate);
+       memcpy (tmpBuf + offset, &settlementdate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11379,7 +11950,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -11392,7 +11963,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -11405,7 +11976,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -11418,7 +11989,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -11431,7 +12002,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SettlementCurrency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSettlementCurrency (settlementcurrency);
+       memcpy (tmpBuf + offset, settlementcurrency.c_str(), 3);
        offset += 3;
     }
     
@@ -11444,7 +12015,7 @@ boeCodec::putTradeCaptureReport (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SettlementLocation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSettlementLocation (settlementlocation);
+       memcpy (tmpBuf + offset, settlementlocation.c_str(), 2);
        offset += 2;
     }
     
@@ -11458,6 +12029,8 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeOrderAcknowledgementPacket* packet = (boeOrderAcknowledgementPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeOrderAcknowledgementPacket))
         return GW_CODEC_SHORT;
@@ -11536,7 +12109,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -11549,7 +12122,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11562,7 +12135,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11575,7 +12148,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -11588,7 +12161,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -11601,7 +12174,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -11614,7 +12187,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -11627,7 +12200,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -11640,7 +12213,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11653,7 +12226,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -11666,7 +12239,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -11679,7 +12252,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -11692,7 +12265,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -11705,7 +12278,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -11718,7 +12291,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -11731,7 +12304,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -11744,7 +12317,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -11757,7 +12330,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -11770,7 +12343,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -11783,7 +12356,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -11796,7 +12369,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -11809,7 +12382,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -11822,7 +12395,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -11835,7 +12408,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -11848,7 +12421,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -11861,7 +12434,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11874,7 +12447,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11887,7 +12460,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -11900,7 +12473,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11913,7 +12486,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -11926,7 +12499,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -11939,7 +12512,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -11952,7 +12525,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -11965,7 +12538,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -11978,7 +12551,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -11991,7 +12564,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -12004,7 +12577,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -12017,7 +12590,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12030,7 +12603,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -12043,7 +12616,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12056,7 +12629,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12069,7 +12642,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -12082,7 +12655,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -12095,7 +12668,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -12108,7 +12681,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12121,7 +12694,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -12134,7 +12707,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -12147,7 +12720,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -12160,7 +12733,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -12173,7 +12746,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -12186,7 +12759,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -12199,7 +12772,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12212,7 +12785,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12225,7 +12798,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -12238,7 +12811,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -12251,7 +12824,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -12264,7 +12837,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -12277,7 +12850,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -12290,7 +12863,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -12303,7 +12876,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -12316,7 +12889,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -12329,7 +12902,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -12342,7 +12915,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12355,7 +12928,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -12368,7 +12941,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -12381,7 +12954,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -12394,7 +12967,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -12407,7 +12980,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -12420,7 +12993,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -12433,7 +13006,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12446,7 +13019,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12459,7 +13032,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -12472,7 +13045,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12485,7 +13058,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12498,7 +13071,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12511,7 +13084,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12524,7 +13097,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12537,7 +13110,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12550,7 +13123,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12563,7 +13136,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12576,7 +13149,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12589,7 +13162,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12602,7 +13175,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -12615,7 +13188,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12628,7 +13201,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12641,7 +13214,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -12654,7 +13227,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -12667,7 +13240,7 @@ boeCodec::putOrderAcknowledgement (const cdr& d, void* buf, size_t len, size_t& 
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -12681,6 +13254,8 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeOrderRejectedPacket* packet = (boeOrderRejectedPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeOrderRejectedPacket))
         return GW_CODEC_SHORT;
@@ -12768,7 +13343,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -12781,7 +13356,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12794,7 +13369,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -12807,7 +13382,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -12820,7 +13395,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -12833,7 +13408,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -12846,7 +13421,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -12859,7 +13434,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -12872,7 +13447,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -12885,7 +13460,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -12898,7 +13473,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -12911,7 +13486,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -12924,7 +13499,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -12937,7 +13512,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -12950,7 +13525,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -12963,7 +13538,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -12976,7 +13551,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -12989,7 +13564,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -13002,7 +13577,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13015,7 +13590,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13028,7 +13603,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -13041,7 +13616,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13054,7 +13629,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -13067,7 +13642,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13080,7 +13655,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13093,7 +13668,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13106,7 +13681,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13119,7 +13694,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -13132,7 +13707,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13145,7 +13720,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -13158,7 +13733,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -13171,7 +13746,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13184,7 +13759,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13197,7 +13772,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -13210,7 +13785,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -13223,7 +13798,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -13236,7 +13811,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -13249,7 +13824,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13262,7 +13837,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -13275,7 +13850,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13288,7 +13863,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13301,7 +13876,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -13314,7 +13889,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -13327,7 +13902,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -13340,7 +13915,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13353,7 +13928,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -13366,7 +13941,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -13379,7 +13954,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -13392,7 +13967,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -13405,7 +13980,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -13418,7 +13993,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -13431,7 +14006,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13444,7 +14019,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13457,7 +14032,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -13470,7 +14045,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13483,7 +14058,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -13496,7 +14071,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -13509,7 +14084,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13522,7 +14097,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -13535,7 +14110,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -13548,7 +14123,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -13561,7 +14136,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -13574,7 +14149,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13587,7 +14162,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13600,7 +14175,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13613,7 +14188,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13626,7 +14201,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -13639,7 +14214,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -13652,7 +14227,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -13665,7 +14240,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13678,7 +14253,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13691,7 +14266,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -13704,7 +14279,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13717,7 +14292,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13730,7 +14305,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13743,7 +14318,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13756,7 +14331,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13769,7 +14344,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13782,7 +14357,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13795,7 +14370,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13808,7 +14383,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13821,7 +14396,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13834,7 +14409,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -13847,7 +14422,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -13860,7 +14435,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13873,7 +14448,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -13886,7 +14461,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -13899,7 +14474,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -13912,7 +14487,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -13925,7 +14500,7 @@ boeCodec::putOrderRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -13939,6 +14514,8 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeOrderModifiedPacket* packet = (boeOrderModifiedPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeOrderModifiedPacket))
         return GW_CODEC_SHORT;
@@ -14017,7 +14594,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -14030,7 +14607,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14043,7 +14620,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14056,7 +14633,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -14069,7 +14646,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -14082,7 +14659,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -14095,7 +14672,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14108,7 +14685,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -14121,7 +14698,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14134,7 +14711,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -14147,7 +14724,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -14160,7 +14737,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -14173,7 +14750,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -14186,7 +14763,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -14199,7 +14776,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -14212,7 +14789,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -14225,7 +14802,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -14238,7 +14815,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -14251,7 +14828,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14264,7 +14841,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14277,7 +14854,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -14290,7 +14867,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14303,7 +14880,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -14316,7 +14893,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14329,7 +14906,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14342,7 +14919,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14355,7 +14932,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14368,7 +14945,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -14381,7 +14958,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14394,7 +14971,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -14407,7 +14984,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -14420,7 +14997,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14433,7 +15010,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14446,7 +15023,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -14459,7 +15036,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -14472,7 +15049,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -14485,7 +15062,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -14498,7 +15075,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14511,7 +15088,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -14524,7 +15101,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14537,7 +15114,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14550,7 +15127,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -14563,7 +15140,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -14576,7 +15153,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -14589,7 +15166,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14602,7 +15179,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -14615,7 +15192,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -14628,7 +15205,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -14641,7 +15218,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -14654,7 +15231,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -14667,7 +15244,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -14680,7 +15257,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14693,7 +15270,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14706,7 +15283,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -14719,7 +15296,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14732,7 +15309,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -14745,7 +15322,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -14758,7 +15335,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14771,7 +15348,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -14784,7 +15361,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -14797,7 +15374,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -14810,7 +15387,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -14823,7 +15400,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14836,7 +15413,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14849,7 +15426,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14862,7 +15439,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -14875,7 +15452,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -14888,7 +15465,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -14901,7 +15478,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -14914,7 +15491,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14927,7 +15504,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14940,7 +15517,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -14953,7 +15530,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14966,7 +15543,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -14979,7 +15556,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -14992,7 +15569,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15005,7 +15582,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15018,7 +15595,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15031,7 +15608,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15044,7 +15621,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15057,7 +15634,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15070,7 +15647,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15083,7 +15660,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -15096,7 +15673,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15109,7 +15686,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15122,7 +15699,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -15135,7 +15712,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -15148,7 +15725,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -15161,7 +15738,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -15174,7 +15751,7 @@ boeCodec::putOrderModified (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15188,6 +15765,8 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeOrderRestatedPacket* packet = (boeOrderRestatedPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeOrderRestatedPacket))
         return GW_CODEC_SHORT;
@@ -15275,7 +15854,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -15288,7 +15867,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15301,7 +15880,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15314,7 +15893,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -15327,7 +15906,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -15340,7 +15919,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -15353,7 +15932,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -15366,7 +15945,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -15379,7 +15958,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15392,7 +15971,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -15405,7 +15984,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -15418,7 +15997,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -15431,7 +16010,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -15444,7 +16023,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -15457,7 +16036,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -15470,7 +16049,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -15483,7 +16062,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -15496,7 +16075,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -15509,7 +16088,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -15522,7 +16101,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -15535,7 +16114,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -15548,7 +16127,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -15561,7 +16140,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -15574,7 +16153,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -15587,7 +16166,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -15600,7 +16179,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15613,7 +16192,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15626,7 +16205,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -15639,7 +16218,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15652,7 +16231,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -15665,7 +16244,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -15678,7 +16257,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15691,7 +16270,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15704,7 +16283,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -15717,7 +16296,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -15730,7 +16309,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -15743,7 +16322,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -15756,7 +16335,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15769,7 +16348,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -15782,7 +16361,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15795,7 +16374,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15808,7 +16387,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -15821,7 +16400,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -15834,7 +16413,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -15847,7 +16426,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15860,7 +16439,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -15873,7 +16452,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -15886,7 +16465,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -15899,7 +16478,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -15912,7 +16491,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -15925,7 +16504,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -15938,7 +16517,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -15951,7 +16530,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -15964,7 +16543,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -15977,7 +16556,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -15990,7 +16569,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -16003,7 +16582,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -16016,7 +16595,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16029,7 +16608,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -16042,7 +16621,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -16055,7 +16634,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -16068,7 +16647,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -16081,7 +16660,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16094,7 +16673,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16107,7 +16686,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16120,7 +16699,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16133,7 +16712,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -16146,7 +16725,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -16159,7 +16738,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -16172,7 +16751,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16185,7 +16764,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16198,7 +16777,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -16211,7 +16790,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16224,7 +16803,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16237,7 +16816,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16250,7 +16829,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16263,7 +16842,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16276,7 +16855,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16289,7 +16868,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16302,7 +16881,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16315,7 +16894,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16328,7 +16907,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16341,7 +16920,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -16354,7 +16933,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16367,7 +16946,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16380,7 +16959,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16393,7 +16972,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -16406,7 +16985,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -16419,7 +16998,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -16432,7 +17011,7 @@ boeCodec::putOrderRestated (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16446,6 +17025,8 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeUserModifyRejectedPacket* packet = (boeUserModifyRejectedPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeUserModifyRejectedPacket))
         return GW_CODEC_SHORT;
@@ -16533,7 +17114,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -16546,7 +17127,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16559,7 +17140,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16572,7 +17153,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -16585,7 +17166,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -16598,7 +17179,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -16611,7 +17192,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16624,7 +17205,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -16637,7 +17218,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16650,7 +17231,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -16663,7 +17244,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -16676,7 +17257,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -16689,7 +17270,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -16702,7 +17283,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -16715,7 +17296,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -16728,7 +17309,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -16741,7 +17322,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -16754,7 +17335,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -16767,7 +17348,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16780,7 +17361,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16793,7 +17374,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -16806,7 +17387,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16819,7 +17400,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -16832,7 +17413,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16845,7 +17426,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -16858,7 +17439,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16871,7 +17452,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16884,7 +17465,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -16897,7 +17478,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16910,7 +17491,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -16923,7 +17504,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -16936,7 +17517,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -16949,7 +17530,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -16962,7 +17543,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -16975,7 +17556,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -16988,7 +17569,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -17001,7 +17582,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -17014,7 +17595,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17027,7 +17608,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -17040,7 +17621,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17053,7 +17634,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17066,7 +17647,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -17079,7 +17660,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -17092,7 +17673,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -17105,7 +17686,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17118,7 +17699,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -17131,7 +17712,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -17144,7 +17725,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -17157,7 +17738,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -17170,7 +17751,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -17183,7 +17764,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -17196,7 +17777,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17209,7 +17790,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17222,7 +17803,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -17235,7 +17816,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -17248,7 +17829,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -17261,7 +17842,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -17274,7 +17855,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -17287,7 +17868,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -17300,7 +17881,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -17313,7 +17894,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -17326,7 +17907,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -17339,7 +17920,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17352,7 +17933,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -17365,7 +17946,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -17378,7 +17959,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -17391,7 +17972,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -17404,7 +17985,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -17417,7 +17998,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -17430,7 +18011,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17443,7 +18024,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17456,7 +18037,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -17469,7 +18050,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17482,7 +18063,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17495,7 +18076,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17508,7 +18089,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17521,7 +18102,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17534,7 +18115,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17547,7 +18128,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17560,7 +18141,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17573,7 +18154,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17586,7 +18167,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17599,7 +18180,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -17612,7 +18193,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17625,7 +18206,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17638,7 +18219,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -17651,7 +18232,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -17664,7 +18245,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -17677,7 +18258,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -17690,7 +18271,7 @@ boeCodec::putUserModifyRejected (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17704,6 +18285,8 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeOrderCancelledPacket* packet = (boeOrderCancelledPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeOrderCancelledPacket))
         return GW_CODEC_SHORT;
@@ -17782,7 +18365,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -17795,7 +18378,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17808,7 +18391,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -17821,7 +18404,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -17834,7 +18417,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -17847,7 +18430,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -17860,7 +18443,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -17873,7 +18456,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -17886,7 +18469,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -17899,7 +18482,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -17912,7 +18495,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -17925,7 +18508,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -17938,7 +18521,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -17951,7 +18534,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -17964,7 +18547,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -17977,7 +18560,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -17990,7 +18573,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -18003,7 +18586,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -18016,7 +18599,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18029,7 +18612,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18042,7 +18625,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -18055,7 +18638,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18068,7 +18651,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -18081,7 +18664,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18094,7 +18677,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18107,7 +18690,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18120,7 +18703,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18133,7 +18716,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -18146,7 +18729,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18159,7 +18742,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -18172,7 +18755,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -18185,7 +18768,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18198,7 +18781,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18211,7 +18794,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -18224,7 +18807,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -18237,7 +18820,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -18250,7 +18833,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -18263,7 +18846,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18276,7 +18859,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -18289,7 +18872,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18302,7 +18885,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18315,7 +18898,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -18328,7 +18911,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -18341,7 +18924,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -18354,7 +18937,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18367,7 +18950,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -18380,7 +18963,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -18393,7 +18976,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -18406,7 +18989,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -18419,7 +19002,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -18432,7 +19015,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -18445,7 +19028,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18458,7 +19041,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18471,7 +19054,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -18484,7 +19067,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18497,7 +19080,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -18510,7 +19093,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -18523,7 +19106,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18536,7 +19119,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -18549,7 +19132,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -18562,7 +19145,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -18575,7 +19158,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -18588,7 +19171,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18601,7 +19184,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18614,7 +19197,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18627,7 +19210,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18640,7 +19223,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -18653,7 +19236,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -18666,7 +19249,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -18679,7 +19262,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18692,7 +19275,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18705,7 +19288,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -18718,7 +19301,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18731,7 +19314,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18744,7 +19327,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18757,7 +19340,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18770,7 +19353,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18783,7 +19366,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18796,7 +19379,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18809,7 +19392,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18822,7 +19405,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18835,7 +19418,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18848,7 +19431,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -18861,7 +19444,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -18874,7 +19457,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18887,7 +19470,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -18900,7 +19483,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -18913,7 +19496,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -18926,7 +19509,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -18939,7 +19522,7 @@ boeCodec::putOrderCancelled (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -18953,6 +19536,8 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeCancelRejectedPacket* packet = (boeCancelRejectedPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeCancelRejectedPacket))
         return GW_CODEC_SHORT;
@@ -19040,7 +19625,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -19053,7 +19638,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19066,7 +19651,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19079,7 +19664,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -19092,7 +19677,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -19105,7 +19690,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -19118,7 +19703,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19131,7 +19716,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -19144,7 +19729,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -19157,7 +19742,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -19170,7 +19755,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -19183,7 +19768,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -19196,7 +19781,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -19209,7 +19794,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -19222,7 +19807,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -19235,7 +19820,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -19248,7 +19833,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -19261,7 +19846,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -19274,7 +19859,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19287,7 +19872,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19300,7 +19885,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -19313,7 +19898,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19326,7 +19911,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -19339,7 +19924,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19352,7 +19937,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19365,7 +19950,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19378,7 +19963,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19391,7 +19976,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -19404,7 +19989,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19417,7 +20002,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -19430,7 +20015,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -19443,7 +20028,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -19456,7 +20041,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19469,7 +20054,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -19482,7 +20067,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -19495,7 +20080,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -19508,7 +20093,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -19521,7 +20106,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -19534,7 +20119,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -19547,7 +20132,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19560,7 +20145,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19573,7 +20158,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -19586,7 +20171,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -19599,7 +20184,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -19612,7 +20197,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19625,7 +20210,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -19638,7 +20223,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -19651,7 +20236,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -19664,7 +20249,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -19677,7 +20262,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -19690,7 +20275,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -19703,7 +20288,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -19716,7 +20301,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -19729,7 +20314,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -19742,7 +20327,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19755,7 +20340,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -19768,7 +20353,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -19781,7 +20366,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19794,7 +20379,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -19807,7 +20392,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -19820,7 +20405,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -19833,7 +20418,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -19846,7 +20431,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -19859,7 +20444,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19872,7 +20457,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19885,7 +20470,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -19898,7 +20483,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -19911,7 +20496,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -19924,7 +20509,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -19937,7 +20522,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -19950,7 +20535,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -19963,7 +20548,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -19976,7 +20561,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -19989,7 +20574,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20002,7 +20587,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20015,7 +20600,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20028,7 +20613,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20041,7 +20626,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20054,7 +20639,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20067,7 +20652,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20080,7 +20665,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20093,7 +20678,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20106,7 +20691,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -20119,7 +20704,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20132,7 +20717,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20145,7 +20730,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -20158,7 +20743,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -20171,7 +20756,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -20184,7 +20769,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -20197,7 +20782,7 @@ boeCodec::putCancelRejected (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20211,6 +20796,8 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeOrderExecutionPacket* packet = (boeOrderExecutionPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeOrderExecutionPacket))
         return GW_CODEC_SHORT;
@@ -20343,7 +20930,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -20356,7 +20943,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20369,7 +20956,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20382,7 +20969,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -20395,7 +20982,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -20408,7 +20995,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -20421,7 +21008,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -20434,7 +21021,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -20447,7 +21034,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20460,7 +21047,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -20473,7 +21060,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -20486,7 +21073,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -20499,7 +21086,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -20512,7 +21099,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -20525,7 +21112,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -20538,7 +21125,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -20551,7 +21138,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -20564,7 +21151,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -20577,7 +21164,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -20590,7 +21177,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -20603,7 +21190,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -20616,7 +21203,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -20629,7 +21216,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -20642,7 +21229,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -20655,7 +21242,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -20668,7 +21255,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20681,7 +21268,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20694,7 +21281,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -20707,7 +21294,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20720,7 +21307,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -20733,7 +21320,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -20746,7 +21333,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20759,7 +21346,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20772,7 +21359,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -20785,7 +21372,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -20798,7 +21385,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -20811,7 +21398,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -20824,7 +21411,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -20837,7 +21424,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -20850,7 +21437,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20863,7 +21450,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20876,7 +21463,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -20889,7 +21476,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -20902,7 +21489,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -20915,7 +21502,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -20928,7 +21515,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -20941,7 +21528,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -20954,7 +21541,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -20967,7 +21554,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -20980,7 +21567,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -20993,7 +21580,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -21006,7 +21593,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21019,7 +21606,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21032,7 +21619,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -21045,7 +21632,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21058,7 +21645,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -21071,7 +21658,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -21084,7 +21671,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21097,7 +21684,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -21110,7 +21697,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -21123,7 +21710,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -21136,7 +21723,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -21149,7 +21736,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21162,7 +21749,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21175,7 +21762,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21188,7 +21775,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21201,7 +21788,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -21214,7 +21801,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -21227,7 +21814,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -21240,7 +21827,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21253,7 +21840,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21266,7 +21853,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -21279,7 +21866,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21292,7 +21879,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21305,7 +21892,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21318,7 +21905,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21331,7 +21918,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21344,7 +21931,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21357,7 +21944,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21370,7 +21957,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21383,7 +21970,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21396,7 +21983,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21409,7 +21996,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -21422,7 +22009,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21435,7 +22022,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21448,7 +22035,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21461,7 +22048,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -21474,7 +22061,7 @@ boeCodec::putOrderExecution (const cdr& d, void* buf, size_t len, size_t& used)
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -21488,6 +22075,8 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeTradeCancelCorrectPacket* packet = (boeTradeCancelCorrectPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeTradeCancelCorrectPacket))
         return GW_CODEC_SHORT;
@@ -21647,7 +22236,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -21660,7 +22249,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21673,7 +22262,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21686,7 +22275,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -21699,7 +22288,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -21712,7 +22301,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -21725,7 +22314,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21738,7 +22327,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -21751,7 +22340,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -21764,7 +22353,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -21777,7 +22366,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -21790,7 +22379,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -21803,7 +22392,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -21816,7 +22405,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -21829,7 +22418,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -21842,7 +22431,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -21855,7 +22444,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -21868,7 +22457,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -21881,7 +22470,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21894,7 +22483,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21907,7 +22496,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -21920,7 +22509,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21933,7 +22522,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -21946,7 +22535,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21959,7 +22548,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -21972,7 +22561,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21985,7 +22574,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -21998,7 +22587,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -22011,7 +22600,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22024,7 +22613,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -22037,7 +22626,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -22050,7 +22639,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22063,7 +22652,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22076,7 +22665,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -22089,7 +22678,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -22102,7 +22691,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -22115,7 +22704,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -22128,7 +22717,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22141,7 +22730,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -22154,7 +22743,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22167,7 +22756,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22180,7 +22769,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -22193,7 +22782,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -22206,7 +22795,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -22219,7 +22808,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22232,7 +22821,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -22245,7 +22834,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -22258,7 +22847,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -22271,7 +22860,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -22284,7 +22873,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -22297,7 +22886,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -22310,7 +22899,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22323,7 +22912,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22336,7 +22925,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -22349,7 +22938,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -22362,7 +22951,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -22375,7 +22964,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -22388,7 +22977,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -22401,7 +22990,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -22414,7 +23003,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -22427,7 +23016,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -22440,7 +23029,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -22453,7 +23042,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22466,7 +23055,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -22479,7 +23068,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -22492,7 +23081,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -22505,7 +23094,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -22518,7 +23107,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -22531,7 +23120,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -22544,7 +23133,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22557,7 +23146,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22570,7 +23159,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -22583,7 +23172,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22596,7 +23185,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22609,7 +23198,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22622,7 +23211,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22635,7 +23224,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22648,7 +23237,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22661,7 +23250,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22674,7 +23263,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22687,7 +23276,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22700,7 +23289,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22713,7 +23302,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -22726,7 +23315,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22739,7 +23328,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22752,7 +23341,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -22765,7 +23354,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -22778,7 +23367,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -22791,7 +23380,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -22804,7 +23393,7 @@ boeCodec::putTradeCancelCorrect (const cdr& d, void* buf, size_t len, size_t& us
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -22818,6 +23407,8 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeTradeCaptureReportAcknowledgementPacket* packet = (boeTradeCaptureReportAcknowledgementPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeTradeCaptureReportAcknowledgementPacket))
         return GW_CODEC_SHORT;
@@ -22887,7 +23478,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -22900,7 +23491,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22913,7 +23504,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -22926,7 +23517,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -22939,7 +23530,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -22952,7 +23543,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -22965,7 +23556,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -22978,7 +23569,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -22991,7 +23582,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23004,7 +23595,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -23017,7 +23608,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -23030,7 +23621,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -23043,7 +23634,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -23056,7 +23647,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -23069,7 +23660,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -23082,7 +23673,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -23095,7 +23686,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -23108,7 +23699,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -23121,7 +23712,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23134,7 +23725,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23147,7 +23738,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -23160,7 +23751,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23173,7 +23764,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -23186,7 +23777,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23199,7 +23790,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23212,7 +23803,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23225,7 +23816,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23238,7 +23829,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -23251,7 +23842,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23264,7 +23855,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -23277,7 +23868,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -23290,7 +23881,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23303,7 +23894,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23316,7 +23907,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -23329,7 +23920,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -23342,7 +23933,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -23355,7 +23946,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -23368,7 +23959,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23381,7 +23972,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -23394,7 +23985,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23407,7 +23998,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23420,7 +24011,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -23433,7 +24024,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -23446,7 +24037,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -23459,7 +24050,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23472,7 +24063,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -23485,7 +24076,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -23498,7 +24089,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -23511,7 +24102,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -23524,7 +24115,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -23537,7 +24128,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -23550,7 +24141,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23563,7 +24154,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23576,7 +24167,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -23589,7 +24180,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23602,7 +24193,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -23615,7 +24206,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -23628,7 +24219,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23641,7 +24232,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -23654,7 +24245,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -23667,7 +24258,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -23680,7 +24271,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -23693,7 +24284,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23706,7 +24297,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23719,7 +24310,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23732,7 +24323,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -23745,7 +24336,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -23758,7 +24349,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -23771,7 +24362,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -23784,7 +24375,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23797,7 +24388,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23810,7 +24401,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -23823,7 +24414,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23836,7 +24427,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23849,7 +24440,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23862,7 +24453,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23875,7 +24466,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23888,7 +24479,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23901,7 +24492,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23914,7 +24505,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23927,7 +24518,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23940,7 +24531,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23953,7 +24544,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -23966,7 +24557,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -23979,7 +24570,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -23992,7 +24583,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24005,7 +24596,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -24018,7 +24609,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -24031,7 +24622,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -24044,7 +24635,7 @@ boeCodec::putTradeCaptureReportAcknowledgement (const cdr& d, void* buf, size_t 
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -24124,6 +24715,8 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeTradeCaptureReportRejectPacket* packet = (boeTradeCaptureReportRejectPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeTradeCaptureReportRejectPacket))
         return GW_CODEC_SHORT;
@@ -24211,7 +24804,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -24224,7 +24817,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24237,7 +24830,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24250,7 +24843,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -24263,7 +24856,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -24276,7 +24869,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -24289,7 +24882,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24302,7 +24895,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -24315,7 +24908,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -24328,7 +24921,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -24341,7 +24934,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -24354,7 +24947,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -24367,7 +24960,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -24380,7 +24973,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -24393,7 +24986,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -24406,7 +24999,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -24419,7 +25012,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -24432,7 +25025,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -24445,7 +25038,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24458,7 +25051,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24471,7 +25064,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -24484,7 +25077,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24497,7 +25090,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -24510,7 +25103,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24523,7 +25116,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24536,7 +25129,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24549,7 +25142,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24562,7 +25155,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -24575,7 +25168,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24588,7 +25181,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -24601,7 +25194,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -24614,7 +25207,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -24627,7 +25220,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24640,7 +25233,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -24653,7 +25246,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -24666,7 +25259,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -24679,7 +25272,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -24692,7 +25285,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -24705,7 +25298,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -24718,7 +25311,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24731,7 +25324,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24744,7 +25337,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -24757,7 +25350,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -24770,7 +25363,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -24783,7 +25376,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24796,7 +25389,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -24809,7 +25402,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -24822,7 +25415,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -24835,7 +25428,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -24848,7 +25441,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -24861,7 +25454,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -24874,7 +25467,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -24887,7 +25480,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -24900,7 +25493,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -24913,7 +25506,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24926,7 +25519,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -24939,7 +25532,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -24952,7 +25545,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -24965,7 +25558,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -24978,7 +25571,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -24991,7 +25584,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -25004,7 +25597,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -25017,7 +25610,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25030,7 +25623,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25043,7 +25636,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25056,7 +25649,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25069,7 +25662,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -25082,7 +25675,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -25095,7 +25688,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -25108,7 +25701,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25121,7 +25714,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25134,7 +25727,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -25147,7 +25740,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25160,7 +25753,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25173,7 +25766,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25186,7 +25779,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25199,7 +25792,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25212,7 +25805,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25225,7 +25818,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25238,7 +25831,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25251,7 +25844,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25264,7 +25857,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25277,7 +25870,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -25290,7 +25883,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25303,7 +25896,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25316,7 +25909,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25329,7 +25922,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -25342,7 +25935,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -25355,7 +25948,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -25368,7 +25961,7 @@ boeCodec::putTradeCaptureReportReject (const cdr& d, void* buf, size_t len, size
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25448,6 +26041,8 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeTradeCaptureConfirmPacket* packet = (boeTradeCaptureConfirmPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeTradeCaptureConfirmPacket))
         return GW_CODEC_SHORT;
@@ -25553,7 +26148,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -25566,7 +26161,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25579,7 +26174,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25592,7 +26187,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -25605,7 +26200,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -25618,7 +26213,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -25631,7 +26226,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25644,7 +26239,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -25657,7 +26252,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25670,7 +26265,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -25683,7 +26278,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -25696,7 +26291,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -25709,7 +26304,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -25722,7 +26317,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -25735,7 +26330,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -25748,7 +26343,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -25761,7 +26356,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -25774,7 +26369,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -25787,7 +26382,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25800,7 +26395,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25813,7 +26408,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -25826,7 +26421,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25839,7 +26434,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -25852,7 +26447,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25865,7 +26460,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -25878,7 +26473,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25891,7 +26486,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25904,7 +26499,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -25917,7 +26512,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25930,7 +26525,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -25943,7 +26538,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -25956,7 +26551,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -25969,7 +26564,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -25982,7 +26577,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -25995,7 +26590,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -26008,7 +26603,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -26021,7 +26616,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -26034,7 +26629,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26047,7 +26642,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -26060,7 +26655,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26073,7 +26668,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26086,7 +26681,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -26099,7 +26694,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -26112,7 +26707,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -26125,7 +26720,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26138,7 +26733,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -26151,7 +26746,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -26164,7 +26759,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -26177,7 +26772,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -26190,7 +26785,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -26203,7 +26798,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -26216,7 +26811,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26229,7 +26824,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26242,7 +26837,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -26255,7 +26850,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -26268,7 +26863,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -26281,7 +26876,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -26294,7 +26889,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -26307,7 +26902,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -26320,7 +26915,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -26333,7 +26928,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -26346,7 +26941,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -26359,7 +26954,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26372,7 +26967,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -26385,7 +26980,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -26398,7 +26993,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -26411,7 +27006,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -26424,7 +27019,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -26437,7 +27032,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -26450,7 +27045,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26463,7 +27058,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26476,7 +27071,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -26489,7 +27084,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26502,7 +27097,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26515,7 +27110,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26528,7 +27123,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26541,7 +27136,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26554,7 +27149,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26567,7 +27162,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26580,7 +27175,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26593,7 +27188,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26606,7 +27201,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26619,7 +27214,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -26632,7 +27227,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26645,7 +27240,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26658,7 +27253,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -26671,7 +27266,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -26684,7 +27279,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -26697,7 +27292,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -26710,7 +27305,7 @@ boeCodec::putTradeCaptureConfirm (const cdr& d, void* buf, size_t len, size_t& u
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -26790,6 +27385,8 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
 {
     size_t offset = sizeof (BoeHeaderPacket);
     boeTradeCaptureReportDeclinePacket* packet = (boeTradeCaptureReportDeclinePacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
 
     if (len < sizeof (boeTradeCaptureReportDeclinePacket))
         return GW_CODEC_SHORT;
@@ -26922,7 +27519,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Side missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSide (side);
+       memcpy (tmpBuf + offset, side.c_str(), 1);
        offset += 1;
     }
     
@@ -26935,7 +27532,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("PegDifference missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPegDifference (pegdifference);
+       memcpy (tmpBuf + offset, &pegdifference, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26948,7 +27545,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Price missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setPrice (price);
+       memcpy (tmpBuf + offset, &price, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -26961,7 +27558,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ExecInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExecInst (execinst);
+       memcpy (tmpBuf + offset, execinst.c_str(), 1);
        offset += 1;
     }
     
@@ -26974,7 +27571,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("OrdType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrdType (ordtype);
+       memcpy (tmpBuf + offset, ordtype.c_str(), 1);
        offset += 1;
     }
     
@@ -26987,7 +27584,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("TimeInForce missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTimeInForce (timeinforce);
+       memcpy (tmpBuf + offset, timeinforce.c_str(), 1);
        offset += 1;
     }
     
@@ -27000,7 +27597,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("MinQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMinQty (minqty);
+       memcpy (tmpBuf + offset, &minqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27013,7 +27610,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Symbol missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbol (symbol);
+       memcpy (tmpBuf + offset, symbol.c_str(), 8);
        offset += 8;
     }
     
@@ -27026,7 +27623,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("SymbolSfx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSymbolSfx (symbolsfx);
+       memcpy (tmpBuf + offset, &symbolsfx, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27039,7 +27636,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Currency missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCurrency (currency);
+       memcpy (tmpBuf + offset, currency.c_str(), 3);
        offset += 3;
     }
     
@@ -27052,7 +27649,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("IDSource missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setIDSource (idsource);
+       memcpy (tmpBuf + offset, idsource.c_str(), 1);
        offset += 1;
     }
     
@@ -27065,7 +27662,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("SecurityID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityID (securityid);
+       memcpy (tmpBuf + offset, securityid.c_str(), 16);
        offset += 16;
     }
     
@@ -27078,7 +27675,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("SecurityExchange missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSecurityExchange (securityexchange);
+       memcpy (tmpBuf + offset, securityexchange.c_str(), 4);
        offset += 4;
     }
     
@@ -27091,7 +27688,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Capacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCapacity (capacity);
+       memcpy (tmpBuf + offset, capacity.c_str(), 1);
        offset += 1;
     }
     
@@ -27104,7 +27701,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Account missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAccount (account);
+       memcpy (tmpBuf + offset, account.c_str(), 16);
        offset += 16;
     }
     
@@ -27117,7 +27714,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ClearingFirm missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingFirm (clearingfirm);
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
        offset += 4;
     }
     
@@ -27130,7 +27727,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ClearingAccount missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setClearingAccount (clearingaccount);
+       memcpy (tmpBuf + offset, clearingaccount.c_str(), 4);
        offset += 4;
     }
     
@@ -27143,7 +27740,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("DisplayIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayIndicator (displayindicator);
+       memcpy (tmpBuf + offset, displayindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -27156,7 +27753,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("MaxFloor missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setMaxFloor (maxfloor);
+       memcpy (tmpBuf + offset, &maxfloor, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27169,7 +27766,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("OrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderQty (orderqty);
+       memcpy (tmpBuf + offset, &orderqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27182,7 +27779,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("PreventParticipantMatch missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPreventParticipantMatch (preventparticipantmatch);
+       memcpy (tmpBuf + offset, preventparticipantmatch.c_str(), 3);
        offset += 3;
     }
     
@@ -27195,7 +27792,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("CorrectedSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCorrectedSize (correctedsize);
+       memcpy (tmpBuf + offset, &correctedsize, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27208,7 +27805,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("OrigClOrdID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigClOrdID (origclordid);
+       memcpy (tmpBuf + offset, origclordid.c_str(), 20);
        offset += 20;
     }
     
@@ -27221,7 +27818,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("LeavesQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLeavesQty (leavesqty);
+       memcpy (tmpBuf + offset, &leavesqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27234,7 +27831,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("LastShares missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLastShares (lastshares);
+       memcpy (tmpBuf + offset, &lastshares, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27247,7 +27844,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("DisplayPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDisplayPrice (displayprice);
+       memcpy (tmpBuf + offset, &displayprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27260,7 +27857,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("WorkingPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setWorkingPrice (workingprice);
+       memcpy (tmpBuf + offset, &workingprice, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27273,7 +27870,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("BaseLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBaseLiquidityIndicator (baseliquidityindicator);
+       memcpy (tmpBuf + offset, baseliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -27286,7 +27883,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("SecondaryOrderID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryOrderID (secondaryorderid);
+       memcpy (tmpBuf + offset, &secondaryorderid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27299,7 +27896,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Ccp missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCcp (ccp);
+       memcpy (tmpBuf + offset, ccp.c_str(), 1);
        offset += 1;
     }
     
@@ -27312,7 +27909,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ContraCapacity missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setContraCapacity (contracapacity);
+       memcpy (tmpBuf + offset, contracapacity.c_str(), 1);
        offset += 1;
     }
     
@@ -27325,7 +27922,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("AttributedQuote missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAttributedQuote (attributedquote);
+       memcpy (tmpBuf + offset, &attributedquote, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27338,7 +27935,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("BulkOrderIDs missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkOrderIDs (bulkorderids);
+       memcpy (tmpBuf + offset, &bulkorderids, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27351,7 +27948,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("BulkRejectReasons missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setBulkRejectReasons (bulkrejectreasons);
+       memcpy (tmpBuf + offset, bulkrejectreasons.c_str(), 1);
        offset += 1;
     }
     
@@ -27364,7 +27961,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("PartyRole missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPartyRole (partyrole);
+       memcpy (tmpBuf + offset, partyrole.c_str(), 1);
        offset += 1;
     }
     
@@ -27377,7 +27974,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("SubLiquidityIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setSubLiquidityIndicator (subliquidityindicator);
+       memcpy (tmpBuf + offset, subliquidityindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -27390,7 +27987,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("TradeReportTypeReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportTypeReturn (tradereporttypereturn);
+       memcpy (tmpBuf + offset, &tradereporttypereturn, sizeof(uint16_t));
        offset += sizeof (uint16_t);
     }
     
@@ -27403,7 +28000,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("TradePublishIndReturn missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndReturn (tradepublishindreturn);
+       memcpy (tmpBuf + offset, &tradepublishindreturn, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27416,7 +28013,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Text missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setText (text);
+       memcpy (tmpBuf + offset, text.c_str(), 60);
        offset += 60;
     }
     
@@ -27429,7 +28026,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("BidPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setBidPx (bidpx);
+       memcpy (tmpBuf + offset, &bidpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27442,7 +28039,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("LargeSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLargeSize (largesize);
+       memcpy (tmpBuf + offset, &largesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27455,7 +28052,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("LastMkt missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLastMkt (lastmkt);
+       memcpy (tmpBuf + offset, lastmkt.c_str(), 4);
        offset += 4;
     }
     
@@ -27468,7 +28065,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("FeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setFeeCode (feecode);
+       memcpy (tmpBuf + offset, feecode.c_str(), 2);
        offset += 2;
     }
     
@@ -27481,7 +28078,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("EchoText missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setEchoText (echotext);
+       memcpy (tmpBuf + offset, echotext.c_str(), 60);
        offset += 60;
     }
     
@@ -27494,7 +28091,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("StopPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setStopPx (stoppx);
+       memcpy (tmpBuf + offset, &stoppx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27507,7 +28104,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("RoutingInst missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingInst (routinginst);
+       memcpy (tmpBuf + offset, routinginst.c_str(), 4);
        offset += 4;
     }
     
@@ -27520,7 +28117,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("RoutStrategy missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutStrategy (routstrategy);
+       memcpy (tmpBuf + offset, routstrategy.c_str(), 4);
        offset += 4;
     }
     
@@ -27533,7 +28130,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ExDestination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setExDestination (exdestination);
+       memcpy (tmpBuf + offset, exdestination.c_str(), 1);
        offset += 1;
     }
     
@@ -27546,7 +28143,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("TradeReportRefID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportRefID (tradereportrefid);
+       memcpy (tmpBuf + offset, tradereportrefid.c_str(), 20);
        offset += 20;
     }
     
@@ -27559,7 +28156,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("MarketingFeeCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setMarketingFeeCode (marketingfeecode);
+       memcpy (tmpBuf + offset, marketingfeecode.c_str(), 2);
        offset += 2;
     }
     
@@ -27572,7 +28169,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("TargetPartyID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTargetPartyID (targetpartyid);
+       memcpy (tmpBuf + offset, targetpartyid.c_str(), 4);
        offset += 4;
     }
     
@@ -27585,7 +28182,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("AuctionID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAuctionID (auctionid);
+       memcpy (tmpBuf + offset, &auctionid, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27598,7 +28195,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("OrderCategory missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderCategory (ordercategory);
+       memcpy (tmpBuf + offset, &ordercategory, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27611,7 +28208,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("LiquidityProvision missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLiquidityProvision (liquidityprovision);
+       memcpy (tmpBuf + offset, liquidityprovision.c_str(), 1);
        offset += 1;
     }
     
@@ -27624,7 +28221,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("CmtaNumber missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCmtaNumber (cmtanumber);
+       memcpy (tmpBuf + offset, &cmtanumber, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27637,7 +28234,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("CrossType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossType (crosstype);
+       memcpy (tmpBuf + offset, crosstype.c_str(), 1);
        offset += 1;
     }
     
@@ -27650,7 +28247,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("CrossPrioritization missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossPrioritization (crossprioritization);
+       memcpy (tmpBuf + offset, crossprioritization.c_str(), 1);
        offset += 1;
     }
     
@@ -27663,7 +28260,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("AllocQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAllocQty (allocqty);
+       memcpy (tmpBuf + offset, &allocqty, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27676,7 +28273,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("RoutingFirmID missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setRoutingFirmID (routingfirmid);
+       memcpy (tmpBuf + offset, routingfirmid.c_str(), 4);
        offset += 4;
     }
     
@@ -27689,7 +28286,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("WaiverType missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setWaiverType (waivertype);
+       memcpy (tmpBuf + offset, waivertype.c_str(), 1);
        offset += 1;
     }
     
@@ -27702,7 +28299,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("CrossExclusionIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCrossExclusionIndicator (crossexclusionindicator);
+       memcpy (tmpBuf + offset, crossexclusionindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -27715,7 +28312,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("PriceFormation missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setPriceFormation (priceformation);
+       memcpy (tmpBuf + offset, priceformation.c_str(), 1);
        offset += 1;
     }
     
@@ -27728,7 +28325,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ClientQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientQualifiedRole (clientqualifiedrole);
+       memcpy (tmpBuf + offset, &clientqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27741,7 +28338,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ClientID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setClientID (clientid);
+       memcpy (tmpBuf + offset, &clientid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27754,7 +28351,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("InvestorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorID (investorid);
+       memcpy (tmpBuf + offset, &investorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27767,7 +28364,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ExecutorID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorID (executorid);
+       memcpy (tmpBuf + offset, &executorid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -27780,7 +28377,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("OrderOrigination missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setOrderOrigination (orderorigination);
+       memcpy (tmpBuf + offset, orderorigination.c_str(), 1);
        offset += 1;
     }
     
@@ -27793,7 +28390,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("AlgorithmicIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setAlgorithmicIndicator (algorithmicindicator);
+       memcpy (tmpBuf + offset, algorithmicindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -27806,7 +28403,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("DeferralReason missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setDeferralReason (deferralreason);
+       memcpy (tmpBuf + offset, deferralreason.c_str(), 1);
        offset += 1;
     }
     
@@ -27819,7 +28416,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("InvestorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setInvestorQualifiedRole (investorqualifiedrole);
+       memcpy (tmpBuf + offset, &investorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27832,7 +28429,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ExecutorQualifiedRole missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setExecutorQualifiedRole (executorqualifiedrole);
+       memcpy (tmpBuf + offset, &executorqualifiedrole, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27845,7 +28442,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("CtiCode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setCtiCode (cticode);
+       memcpy (tmpBuf + offset, cticode.c_str(), 2);
        offset += 2;
     }
     
@@ -27858,7 +28455,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ManualOrderIndicator missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setManualOrderIndicator (manualorderindicator);
+       memcpy (tmpBuf + offset, &manualorderindicator, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27871,7 +28468,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("TradeDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeDate (tradedate);
+       memcpy (tmpBuf + offset, &tradedate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27884,7 +28481,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("VariancePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVariancePrice (varianceprice);
+       memcpy (tmpBuf + offset, &varianceprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27897,7 +28494,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("VarianceSize missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setVarianceSize (variancesize);
+       memcpy (tmpBuf + offset, &variancesize, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27910,7 +28507,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("OrigTASPrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setOrigTASPrice (origtasprice);
+       memcpy (tmpBuf + offset, &origtasprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27923,7 +28520,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("CumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setCumQty (cumqty);
+       memcpy (tmpBuf + offset, &cumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27936,7 +28533,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("DayOrderQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayOrderQty (dayorderqty);
+       memcpy (tmpBuf + offset, &dayorderqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27949,7 +28546,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("DayCumQty missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayCumQty (daycumqty);
+       memcpy (tmpBuf + offset, &daycumqty, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -27962,7 +28559,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("AvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setAvgPx (avgpx);
+       memcpy (tmpBuf + offset, &avgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27975,7 +28572,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("DayAvgPx missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setDayAvgPx (dayavgpx);
+       memcpy (tmpBuf + offset, &dayavgpx, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -27988,7 +28585,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("LegCFICode missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setLegCFICode (legcficode);
+       memcpy (tmpBuf + offset, legcficode.c_str(), 2);
        offset += 2;
     }
     
@@ -28001,7 +28598,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("LegMaturityDate missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegMaturityDate (legmaturitydate);
+       memcpy (tmpBuf + offset, &legmaturitydate, sizeof(uint64_t));
        offset += sizeof (uint64_t);
     }
     
@@ -28014,7 +28611,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("LegStrikePrice missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setLegStrikePrice (legstrikeprice);
+       memcpy (tmpBuf + offset, &legstrikeprice, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -28027,7 +28624,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("SecondaryExecID missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setSecondaryExecID (secondaryexecid);
+       memcpy (tmpBuf + offset, &secondaryexecid, sizeof(uint32_t));
        offset += sizeof (uint32_t);
     }
     
@@ -28040,7 +28637,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("Username missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setUsername (username);
+       memcpy (tmpBuf + offset, username.c_str(), 4);
        offset += 4;
     }
     
@@ -28053,7 +28650,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("TradeReportingIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradeReportingIndicator (tradereportingindicator);
+       memcpy (tmpBuf + offset, tradereportingindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -28066,7 +28663,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("TradePublishIndicator missing or not string");
            return GW_CODEC_ERROR;
        }
-       packet->setTradePublishIndicator (tradepublishindicator);
+       memcpy (tmpBuf + offset, tradepublishindicator.c_str(), 1);
        offset += 1;
     }
     
@@ -28079,7 +28676,7 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
            setLastError ("ReportTime missing or not integer");
            return GW_CODEC_ERROR;
        }
-       packet->setReportTime (reporttime);
+       memcpy (tmpBuf + offset, &reporttime, sizeof(uint8_t));
        offset += sizeof (uint8_t);
     }
     
@@ -28154,6 +28751,155 @@ boeCodec::putTradeCaptureReportDecline (const cdr& d, void* buf, size_t len, siz
     return GW_CODEC_SUCCESS;
 }
 
+codecState
+boeCodec::putPurgeOrder (const cdr& d, void* buf, size_t len, size_t& used)
+{
+    size_t offset = sizeof (BoeHeaderPacket);
+    boePurgeOrderPacket* packet = (boePurgeOrderPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
+
+    if (len < sizeof (boePurgeOrderPacket))
+        return GW_CODEC_SHORT;
+
+    
+    string masscancel;
+    if (!d.getString (MassCancel, masscancel))
+    {
+        setLastError ("MassCancel missing or not string");
+        return GW_CODEC_ERROR;
+    }
+    packet->setMassCancel (masscancel);
+    offset += 1;
+    
+    uint8_t numberofbitfields;
+    if (!d.getInteger (NumberOfBitfields, numberofbitfields))
+    {
+        setLastError ("NumberOfBitfields missing or not integer");
+        return GW_CODEC_ERROR;
+    }
+    packet->setNumberOfBitfields (numberofbitfields);
+    offset += sizeof (uint8_t);
+    
+    if (d.getArraySize (BitfieldSection) > 0)
+    {
+        cdrArray* BitfieldArray = NULL;
+        d.getArray (BitfieldSection, (const cdrArray**)(&BitfieldArray));
+        for (cdrArray::iterator it = BitfieldArray->begin(); it != BitfieldArray->end(); ++it)
+        {
+            cdr& item = *it;
+            BoeBitfieldPacket* bitfieldElement = (BoeBitfieldPacket*) ((char*)buf + offset);
+
+            uint8_t bitfield;
+            if (!item.getInteger (Bitfield, bitfield))
+                bitfieldElement->setBitfield (UINT8_MAX);
+            else
+                bitfieldElement->setBitfield (bitfield);
+            offset += sizeof (uint8_t);
+            
+
+        }
+    }
+    
+    if (mPurgeOrderBits->hasClearingFirm)
+    {
+       string clearingfirm;
+       if (!d.getString (ClearingFirm, clearingfirm))
+       {
+           setLastError ("ClearingFirm missing or not string");
+           return GW_CODEC_ERROR;
+       }
+       memcpy (tmpBuf + offset, clearingfirm.c_str(), 4);
+       offset += 4;
+    }
+    
+    
+    uint8_t numberofcustomgroupids;
+    if (!d.getInteger (NumberOfCustomGroupIDs, numberofcustomgroupids))
+    {
+        setLastError ("NumberOfCustomGroupIDs missing or not integer");
+        return GW_CODEC_ERROR;
+    }
+    packet->setNumberOfCustomGroupIDs (numberofcustomgroupids);
+    offset += sizeof (uint8_t);
+    
+    if (d.getArraySize (CustomGroupIDSection) > 0)
+    {
+        cdrArray* CustomGroupIDArray = NULL;
+        d.getArray (CustomGroupIDSection, (const cdrArray**)(&CustomGroupIDArray));
+        for (cdrArray::iterator it = CustomGroupIDArray->begin(); it != CustomGroupIDArray->end(); ++it)
+        {
+            cdr& item = *it;
+            BoeCustomGroupIDPacket* customgroupidElement = (BoeCustomGroupIDPacket*) ((char*)buf + offset);
+
+            uint16_t customgroupid;
+            if (!item.getInteger (CustomGroupID, customgroupid))
+            {
+                setLastError ("CustomGroupID missing or not integer");
+                return GW_CODEC_ERROR;
+            }
+            customgroupidElement->setCustomGroupID (customgroupid);
+            offset += sizeof (uint16_t);
+
+        }
+    }
+    used += offset;
+
+    return GW_CODEC_SUCCESS;
+}
+
+codecState
+boeCodec::putPurgeRejected (const cdr& d, void* buf, size_t len, size_t& used)
+{
+    size_t offset = sizeof (BoeHeaderPacket);
+    boePurgeRejectedPacket* packet = (boePurgeRejectedPacket*)((char*)buf + offset);
+
+    char *tmpBuf = (char *)buf;
+
+    if (len < sizeof (boePurgeRejectedPacket))
+        return GW_CODEC_SHORT;
+
+    
+    uint64_t transacttime;
+    if (!d.getInteger (TransactTime, transacttime))
+    {
+        setLastError ("TransactTime missing or not integer");
+        return GW_CODEC_ERROR;
+    }
+    packet->setTransactTime (transacttime);
+    offset += sizeof (uint64_t);
+    
+    uint8_t purgerejectreason;
+    if (!d.getInteger (PurgeRejectReason, purgerejectreason))
+    {
+        setLastError ("PurgeRejectReason missing or not integer");
+        return GW_CODEC_ERROR;
+    }
+    packet->setPurgeRejectReason (purgerejectreason);
+    offset += sizeof (uint8_t);
+    
+    string purgerejecttext;
+    if (!d.getString (PurgeRejectText, purgerejecttext))
+    {
+        setLastError ("PurgeRejectText missing or not string");
+        return GW_CODEC_ERROR;
+    }
+    packet->setPurgeRejectText (purgerejecttext);
+    offset += 60;
+    
+    string reservedinternal;
+    if (!d.getString (ReservedInternal, reservedinternal))
+    {
+        setLastError ("ReservedInternal missing or not string");
+        return GW_CODEC_ERROR;
+    }
+    packet->setReservedInternal (reservedinternal);
+    offset += 1;
+    used += offset;
+
+    return GW_CODEC_SUCCESS;
+}
+
 
 codecState
 boeCodec::decode (cdr& d, const void* buf, size_t len, size_t& used)
@@ -28178,23 +28924,11 @@ boeCodec::decode (cdr& d, const void* buf, size_t len, size_t& used)
 
     switch (hdr->mMessageType) {
         case 0x37:
-        {
-            used += hdr->getMessageLength () + 2;
-            return GW_CODEC_SUCCESS;
-            //return getLoginRequest (d, buf, used);
-        }
+            return getLoginRequest (d, buf, used);
         case 0x24:
-        {
-            used += hdr->getMessageLength () + 2;
-            return GW_CODEC_SUCCESS;
-            //return getLoginResponse (d, buf, used);
-        }
+            return getLoginResponse (d, buf, used);
         case 0x08:
-        {
-            used += hdr->getMessageLength () + 2;
-            return GW_CODEC_SUCCESS;
-            //return getLogoutResponse (d, buf, used);
-        }
+            return getLogoutResponse (d, buf, used);
         case 0x09:
             return getServerHeartbeat (d, buf, used);
         case 0x03:
@@ -28235,6 +28969,10 @@ boeCodec::decode (cdr& d, const void* buf, size_t len, size_t& used)
             return getTradeCaptureConfirm (d, buf, used);
         case 0x33:
             return getTradeCaptureReportDecline (d, buf, used);
+        case 0x47:
+            return getPurgeOrder (d, buf, used);
+        case 0x48:
+            return getPurgeRejected (d, buf, used);
         default:
             setLastError ("unknown message type");
             return GW_CODEC_ERROR;
@@ -28281,7 +29019,6 @@ boeCodec::encode (const cdr& d, void* buf, size_t len, size_t& used)
     }
     hdr->setSequenceNumber (sequenceNumber);
 
-    used += sizeof (BoeHeaderPacket);
     codecState state = GW_CODEC_ERROR;
     switch (type) {
         case 0x37:
@@ -28352,6 +29089,12 @@ boeCodec::encode (const cdr& d, void* buf, size_t len, size_t& used)
             break;
         case 0x33:
             state = putTradeCaptureReportDecline (d, buf, len, used);
+            break;
+        case 0x47:
+            state = putPurgeOrder (d, buf, len, used);
+            break;
+        case 0x48:
+            state = putPurgeRejected (d, buf, len, used);
             break;
         default:
             setLastError ("unknown message type");

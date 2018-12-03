@@ -1,57 +1,61 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 25/07/2018
+ * Generated 00:20:32 03/12/18
  */
-#ifndef BOE_UNIT_GROUP_PACKET_H
-#define BOE_UNIT_GROUP_PACKET_H
+#ifndef _BOE_BOEUNITGROUPPACKET_PACKET_H_
+#define _BOE_BOEUNITGROUPPACKET_PACKET_H_
 
 #include <string>
-#include <vector>
 #include <sstream>
-#include <cstddef>
 #include <stdint.h>
-#include <stdexcept>
+
+
+#include "boeConstants.h"
+#include "BoeHeaderPacket.h"
 #include "BoePacketUtils.h"
+
 
 namespace neueda
 {
 
 PACKED(class BoeUnitGroupPacket
 {
-    public:
-        uint8_t	                mUnitNumber;
-        uint32_t                mUnitSequence;
+public:
+        uint8_t mUnitNumber;
+        uint32_t mUnitSequence;
 
+    BoeUnitGroupPacket ()
+    {
+        mUnitNumber = 0;
+        mUnitSequence = 0;
+    }
 
-        BoeUnitGroupPacket ()
-        {
-        }
+    
+    uint8_t getUnitNumber ()
+    {
+        return mUnitNumber;
+    }
 
-	    uint8_t getUnitNumber()
-	    {
-	        return mUnitNumber;
-    	}
+    bool setUnitNumber (uint8_t val)
+    {
+        mUnitNumber = val;
+        return true;
+    }
+    
+    uint32_t getUnitSequence ()
+    {
+        return mUnitSequence;
+    }
 
-        int16_t getUnitSequence()
-        {
-            return mUnitSequence;
-        }
+    bool setUnitSequence (uint32_t val)
+    {
+        mUnitSequence = val;
+        return true;
+    }
 
-        bool setUnitNumber(uint8_t val)
-        {
-            mUnitNumber = val;
-            return true;
-        }
-
-        bool setUnitSequence(uint32_t val)
-        {
-            mUnitSequence = val;
-            return true;
-        }
 });
-
 
 } // namespace neueda
 
-#endif // BOE_UNIT_GROUP_PACKET_H
+#endif

@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 13:42:16 22/11/18
+ * Generated 00:20:32 03/12/18
  */
 #ifndef _BOE_BOEHEADERPACKET_PACKET_H_
 #define _BOE_BOEHEADERPACKET_PACKET_H_
@@ -30,7 +30,7 @@ public:
 
     BoeHeaderPacket ()
     {
-        memset (mStartOfMessage, 0, 2);
+        memset (mStartOfMessage, 0XBA, 2);
         mMessageLength = 0;
         mMessageType = 0;
         mMatchingUnit = 0;

@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 13:42:16 22/11/18
+ * Generated 00:20:32 03/12/18
  */
 #ifndef BOE_CODEC_H
 #define BOE_CODEC_H
@@ -36,6 +36,8 @@
 #define TRADECAPTUREREPORTREJECT_BITFIELDS_SIZE 15
 #define TRADECAPTURECONFIRM_BITFIELDS_SIZE 15
 #define TRADECAPTUREREPORTDECLINE_BITFIELDS_SIZE 15
+#define PURGEORDER_BITFIELDS_SIZE 15
+#define ORDERMSG_BITFIELDS_SIZE 15
 
 namespace neueda
 {
@@ -68,6 +70,8 @@ class boeCodec: public codec
             mMsgTypes.insert(std::make_pair("0x31", "TradeCaptureReportReject"));
             mMsgTypes.insert(std::make_pair("0x32", "TradeCaptureConfirm"));
             mMsgTypes.insert(std::make_pair("0x33", "TradeCaptureReportDecline"));
+            mMsgTypes.insert(std::make_pair("0x47", "PurgeOrder"));
+            mMsgTypes.insert(std::make_pair("0x48", "PurgeRejected"));
         }
 
         codecState decode (cdr& d,
@@ -111,6 +115,8 @@ class boeCodec: public codec
         codecState getTradeCaptureReportReject (cdr& d, const void* buf, size_t& used);
         codecState getTradeCaptureConfirm (cdr& d, const void* buf, size_t& used);
         codecState getTradeCaptureReportDecline (cdr& d, const void* buf, size_t& used);
+        codecState getPurgeOrder (cdr& d, const void* buf, size_t& used);
+        codecState getPurgeRejected (cdr& d, const void* buf, size_t& used);
 
         codecState putLoginRequest (const cdr& d,
                                     void* hdr,
@@ -204,6 +210,14 @@ class boeCodec: public codec
                                     void* hdr,
                                     size_t len,
                                     size_t& used);
+        codecState putPurgeOrder (const cdr& d,
+                                    void* hdr,
+                                    size_t len,
+                                    size_t& used);
+        codecState putPurgeRejected (const cdr& d,
+                                    void* hdr,
+                                    size_t len,
+                                    size_t& used);
 
 
         OrderExecutionBits* mOrderExecutionBits;
@@ -223,8 +237,8 @@ class boeCodec: public codec
         CancelOrderBits* mCancelOrderBits;
         ModifyOrderBits* mModifyOrderBits;
         TradeCaptureReportBits* mTradeCaptureReportBits;
-
-
+        PurgeOrderBits* mPurgeOrderBits;
+        OrderMsgBits* mReturnBits;
 };
 
 } // namespace neueda

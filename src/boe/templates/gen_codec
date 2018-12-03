@@ -82,15 +82,16 @@ def get_bitfield_int_field(field, t,  indent, pkt, cdr):
     res = Template("""
 ${indent}if (${bits}->${hasFieldName})
 ${indent}{
-${indent}    ${cdr}.setInteger (${fieldName}, ${t}(newBuf[offset]) );
+${indent}    ${cdr}.setInteger (${fieldName}, *(${t}*)(newBuf + offset) );
 ${indent}    offset += sizeof (${t});
 ${indent}}
-${indent}""").\
+""").\
         substitute(**{'indent': indent * ' ',
                       'bits': bits,
                       't': t,
                       'hasFieldName': has_field_name,
                       'fieldName': field['name'],
+                      'lowerName': field['name'].lower(),
                       'null_val': null_val,
                       'packet': pkt,
                       'cdr': cdr})
@@ -99,7 +100,7 @@ ${indent}""").\
 def get_int_field_from_buf(field, t,  indent, pkt, cdr):
     null_val = get_null(t)
     res = Template("""
-${indent}${cdr}.setInteger (${fieldName}, ${t}(newBuf[offset]) );
+${indent}${cdr}.setInteger (${fieldName}, *(${t}*)(newBuf + offset) );
 ${indent}offset += sizeof (${t});
 ${indent}""").\
         substitute(**{'indent': indent * ' ',
@@ -109,7 +110,7 @@ ${indent}""").\
                       'packet': pkt,
                       'cdr': cdr})
     return res
-    
+
 def get_optional_int_field(field, t, indent, pkt, cdr):
     null_val = get_null(t)
     res = Template("""
@@ -127,7 +128,7 @@ ${indent}offset += sizeof (${t});""").\
 
 def get_int_field(field, t, indent, pkt, cdr):
     if 'Bitfields' in field['name'] and 'Number' in field['name']:
-        res = Template(""" 
+        res = Template("""
 ${indent}int numBitfields = packet->get${fieldName} ();
 ${indent}${cdr}.setInteger (${fieldName}, ${packet}->get${fieldName} ());
 ${indent}offset += sizeof (${t});""").\
@@ -153,7 +154,7 @@ ${indent}{
 ${indent}    ${cdr}.setString (${fieldName}, getStringField (newBuf, ${length}, offset) );
 ${indent}    offset += ${length};
 ${indent}}
-${indent}""").\
+""").\
         substitute(**{'indent': indent * ' ',
                       'bits': bits,
                       't': t,
@@ -190,6 +191,11 @@ def get_default_value(field, indent=0, field_type=None):
         return Template("${indent}m${name} = 0;").\
                 substitute(**{'indent': indent * ' ',
                               'name': n})
+    elif 'char' in t and 'StartOfMessage' in n: 
+        return Template("${indent}memset (m${name}, 0XBA, ${length});").\
+                        substitute(**{'indent': indent * ' ',
+                                      'name': n,
+                                      'length': types[t]['length']})
     elif 'char' in t and 'unsigned' not in t:
         return Template("${indent}memset (m${name}, 0, ${length});").\
                         substitute(**{'indent': indent * ' ',
@@ -201,12 +207,12 @@ def get_default_value(field, indent=0, field_type=None):
             null_val = get_null(t)
         if field['bitfield']:
             null_val = get_null(t)
-        
+
         return Template("${indent}m${name} = ${null};").\
                         substitute(**{'indent': indent * ' ',
                                       'name': n,
                                       'null': null_val})
-    
+
 
 def packet_get_set_string(field, indent=4):
     #if not field['bitfield']:
@@ -310,7 +316,7 @@ def get_field_type(field):
             return "//TODO UNHANDLED SET TYPE\n"
     elif re.search('char\d+', t):
         t = 'string'
-    
+
 
     return t
 
@@ -327,7 +333,7 @@ def get_field(field, indent=4, pkt='packet', cdr='d'):
 ${indent}//copying bitfields to new temporary buffer
 ${indent}char* tmpbuf = new char[numBitfields];
 ${indent}memcpy ((void*)tmpbuf, (void*)buf+offset, numBitfields);
-${indent}
+
 ${indent}cdrArray BitfieldArray;
 ${indent}for (int i = 0; i < numBitfields; i++)
 ${indent}{
@@ -340,7 +346,7 @@ ${indent}}
 ${indent}//setting the rest of the remaining bitfields to zero
 ${indent}memset (tmpbuf+numBitfields, 0, (${group_msg_name_upper}_BITFIELDS_SIZE - numBitfields));
 ${indent}${bits} = (${group_msg_name}Bits*) tmpbuf;
-${indent}
+
 ${indent}d.setArray(BitfieldSection, BitfieldArray);
 ${indent}if (${bits} == NULL)
 ${indent}{
@@ -377,7 +383,6 @@ ${indent}for (int i = 0; i < numInGroup; i++)
 ${indent}{
 ${indent}    cdr item;
 ${indent}    ${comp_name}* packet${id} = (${comp_name}*)((char*)buf + offset);
-${indent}    offset += sizeof (${comp_name});
 """).substitute(**{'indent': indent * ' ',
                   'comp_name': comp['name'],
                   'id': group.id,
@@ -396,7 +401,7 @@ ${indent}    offset += sizeof (${comp_name});
             res += "        {0}Array.push_back (item);\n".format(group.original_name)
             res += "    }\n"
             res += "    d.setArray ({0}Section, {0}Array);\n".format(group.original_name)
-    
+
         return res
 
     field_type = get_field_type(field)
@@ -416,7 +421,7 @@ ${indent}    offset += sizeof (${comp_name});
             return get_bitfield_string_field(field, field_type, indent, pkt, cdr)
         else:
             return get_string_field(field, field_type, indent, pkt, cdr)
-    
+
     elif 'enum' in field_type:
             return get_int_field(field, field_type, indent, pkt, cdr)
 
@@ -469,10 +474,10 @@ def set_int_field(field, field_type, indent, pkt, cdr):
     res = Template("""
 ${indent}$fieldType $lowerName;
 ${indent}if (!${cdr}.getInteger ($name, $lowerName))
-$indent{
-$indent    setLastError ("${name} missing or not integer");
-$indent    return GW_CODEC_ERROR;
-$indent}
+${indent}{
+${indent}    setLastError ("${name} missing or not integer");
+${indent}    return GW_CODEC_ERROR;
+${indent}}
 ${indent}${packet}->set${name} (${lowerName});
 ${indent}offset += sizeof ($fieldType);""").\
     substitute(**{'fieldType': field_type,
@@ -498,7 +503,7 @@ ${indent}   {
 ${indent}       setLastError ("${fieldName} missing or not integer");
 ${indent}       return GW_CODEC_ERROR;
 ${indent}   }
-${indent}   ${packet}->set${fieldName} (${lowerName});
+${indent}   memcpy (tmpBuf + offset, &${lowerName}, sizeof(${fieldType}));
 ${indent}   offset += sizeof ($fieldType);
 ${indent}}
 ${indent}""").\
@@ -527,7 +532,7 @@ ${indent}   {
 ${indent}       setLastError ("${fieldName} missing or not string");
 ${indent}       return GW_CODEC_ERROR;
 ${indent}   }
-${indent}   ${packet}->set${fieldName} (${lowerName});
+${indent}   memcpy (tmpBuf + offset, ${lowerName}.c_str(), ${length});
 ${indent}   offset += ${length};
 ${indent}}
 ${indent}""").\
@@ -546,7 +551,7 @@ def set_field(field, indent=4, pkt='packet', cdr='d'):
     if isinstance(field, Group):
         group = field
         comp = composites[group.type]
-        group_packet = 'Boe' + group.name + 'Packet'     
+        group_packet = 'Boe' + group.name + 'Packet'
 
         res = Template(
 """
@@ -575,8 +580,7 @@ ${indent}        ${comp_name}* ${group_name_lower}Element = (${comp_name}*) ((ch
         return res
 
     field_type = get_field_type(field)
-    #if field['bitfield'] and field
-    
+
     if 'int' in field_type:
         if field['optional']:
             return set_optional_int_field(field, field_type, indent, pkt, cdr)
@@ -592,7 +596,7 @@ ${indent}        ${comp_name}* ${group_name_lower}Element = (${comp_name}*) ((ch
             return set_string_field(field, field_type, indent, pkt, cdr)
     elif 'enum' in field_type:
         return set_int_field(field, field_type, indent, pkt, cdr)
-    
+
     return "//TODO UNHANDLED {0} type {1}\n".format(field['name'], field_type)
 
 def load_xml_context(fxml):
@@ -685,7 +689,7 @@ def load_xml_context(fxml):
                     group.append_field(field)
                 msg_data[msg_name].append(group)
                 groups.append(group)
-                
+
 
     return {
         'enums': enum,

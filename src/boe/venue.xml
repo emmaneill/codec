@@ -47,11 +47,17 @@
       <type name="numOfReturnBitfield" primitiveType="uint8_t"/>
       <type name="returnBitfield" primitiveType="uint8_t"/>
     </composite>
+    <composite name="UnitGroup" description="Group to represent repeated unit sequences">
+      <type name="unitNumber" primitiveType="uint8_t"/>
+      <type name="unitSequence" primitiveType="uint32_t"/>
+    </composite>
     <composite name="UnitSequence" description="Group to represent repeated unit sequences">
       <type name="noUnspecifiedUnitReplay" primitiveType="uint8_t"/>
       <type name="numOfUnits" primitiveType="uint8_t"/>
-      <type name="unitNumber" primitiveType="uint8_t"/>
-      <type name="unitSequence" primitiveType="uint64_t"/>
+      <group dimensionType="UnitGroup" id="6" name="UnitGroup" numInGroup="numberOfUnits">
+          <field id="1" name ="unitNumber" type ="uint8_t"/>
+          <field id="2" name ="unitSequence" type ="uint32_t"/>
+      </group>
     </composite>
     <composite name="SideGroup" description="Group to represent side information">
         <type name ="Side" primitiveType ="Side_enum"/>
@@ -145,7 +151,7 @@
     <field id="1" name="TradingSessionSubID" type="char4"/>
     <field id="2" name="username" type="char4"/>
     <field id="3" name="password" type="char10"/>
-    <field id="4" name="numberOfParamGroups" type="int8_t"/>
+    <field id="4" name="numberOfParamGroups" type="uint8_t"/>
     <field id="5" name="Side" presence="bitfield" type="char1"/>
     <field id="6" name="PegDifference" presence="bitfield" type="uint64_t"/>
     <field id="7" name="Price" presence="bitfield" type="uint64_t"/>
@@ -273,11 +279,11 @@
     <field id="3" name="noUnspecifiedUnitReplay" type="uint8_t"/>
     <field id="4" name="lastReceivedSequenceNumber" type="uint32_t"/>
     <field id="5" name="numberOfUnits" type="uint8_t"/>
-    <group dimensionType="UnitSequence" id="6" name="UnitSequence" numInGroup="numberOfUnits">
+    <group dimensionType="UnitGroup" id="6" name="UnitGroup" numInGroup="numberOfUnits">
         <field id="1" name ="unitNumber" type ="uint8_t"/>
-        <field id="2" name ="unitSequence" type ="uint64_t"/>
+        <field id="2" name ="unitSequence" type ="uint32_t"/>
     </group>
-    <field id="7" name="numberOfParamGroups" type="int8_t" />
+    <field id="7" name="numberOfParamGroups" type="uint8_t" />
     <field id="8" name="Side" presence="bitfield" type="char1"/>
     <field id="9" name="PegDifference" presence="bitfield" type="uint64_t"/>
     <field id="10" name="Price" presence="bitfield" type="uint64_t"/>
