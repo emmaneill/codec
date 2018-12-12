@@ -2254,6 +2254,7 @@ using namespace std;
 #define CustomGroupID 4311
 #define NumberOfCustomGroupIDs 4312
 #define MassCancel 4313
+#define ParamGroupSection 4314
 
 namespace neueda
 {

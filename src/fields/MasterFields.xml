@@ -2237,6 +2237,7 @@
   <field name = "CustomGroupID" number="4311" venue="Boe"/>
   <field name = "NumberOfCustomGroupIDs" number="4312" venue="Boe"/>
   <field name = "MassCancel" number="4313" venue="Boe"/>
+  <field name = "ParamGroupSection" number="4314" venue="Boe"/>
         
     FieldMapCreated = true;
 

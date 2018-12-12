@@ -2254,6 +2254,7 @@ FieldUtils::createMap ()
     m[4311] = "CustomGroupID";
     m[4312] = "NumberOfCustomGroupIDs";
     m[4313] = "MassCancel";
+    m[4314] = "ParamGroupSection";
     
     FieldMapCreated = true;
     return m;

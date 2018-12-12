@@ -1,7 +1,7 @@
 /*
  * Copyright 2014-2018 Neueda Ltd.
  * 
- * Generated 00:20:32 03/12/18
+ * Generated 13:58:36 12/12/18
  */
 #ifndef _BOE_LOGINRESPONSE_PACKET_H_
 #define _BOE_LOGINRESPONSE_PACKET_H_
@@ -25,7 +25,6 @@ public:
         uint8_t mNoUnspecifiedUnitReplay;
         uint32_t mLastReceivedSequenceNumber;
         uint8_t mNumberOfUnits;
-        uint8_t mNumberOfParamGroups;
         char mSide[1];
         uint64_t mPegDifference;
         uint64_t mPrice;
@@ -154,7 +153,6 @@ public:
         mNoUnspecifiedUnitReplay = 0;
         mLastReceivedSequenceNumber = 0;
         mNumberOfUnits = 0;
-        mNumberOfParamGroups = 0;
         memset (mSide, 0, 1);
         mPegDifference = UINT64_MAX;
         mPrice = UINT64_MAX;
@@ -329,17 +327,6 @@ public:
     bool setNumberOfUnits (uint8_t val)
     {
         mNumberOfUnits = val;
-        return true;
-    }
-    
-    uint8_t getNumberOfParamGroups ()
-    {
-        return mNumberOfParamGroups;
-    }
-
-    bool setNumberOfParamGroups (uint8_t val)
-    {
-        mNumberOfParamGroups = val;
         return true;
     }
     
