@@ -1,4 +1,4 @@
-@require(Venue, venue, generation_date, messages, msg_data, types, get_field, sets, set_field, remove_space)
+@require(Venue, venue, generation_date, messages, msg_data, types, get_field, sets, set_field)
 /*
  * Copyright 2014-2018 Neueda Ltd.
  *
